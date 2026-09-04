@@ -123,7 +123,7 @@ body{
       <li>ചോദ്യങ്ങൾ Verbal, Non-Verbal, Analytical Reasoning എന്നിവയിൽ നിന്നുള്ള മോഡലുകൾ അടിസ്ഥാനമാക്കി തയ്യാറാക്കിയിരിക്കുന്നു.</li>
       <li>നിങ്ങളുടെ പേര് ടൈപ്പ് ചെയ്‌ത ശേഷം ചോദ്യങ്ങൾക്ക് ഉത്തരം നൽകുക. Submit ചെയ്താൽ ശരി/തെറ്റ് ഉത്തരങ്ങൾ കളർ കോഡ് ചെയ്ത് കാണിക്കും.</li>
       <li>ഓരോ ലിങ്കും "Download PDF" ബട്ടൺ വഴി വാട്ടർമാർക്കോടു കൂടിയ PDF ആയി ഡൗൺലോഡ് ചെയ്യാം. PDF പാസ്‌വേഡ്: <b>2026LSS</b>. അവസാന പേജിൽ ആൻസർ കീ ലഭ്യമാണ്.</li>
-      <li>ഓരോ ലിങ്കിലെയും ചോദ്യങ്ങൾ ക്രമരഹിതമായി സൃഷ്ടിക്കപ്പെടുന്നവയാണ്. ചോദ്യങ്ങൾ ആവർത്തിക്കുന്നില്ല.</li>
+      <li>ഓരോ ലിങ്കിലെയും ചോദ്യങ്ങൾ ക്രമരഹിതമായി സൃഷ്ടിക്കപ്പെടുന്നു. 12 ലിങ്കുകളിലായി ഒരു ചോദ്യവും ആവർത്തിക്കില്ല; സമാന ശൈലിയിലുള്ള പുതിയ ചോദ്യങ്ങൾ മാത്രം വരും.</li>
     </ul>
   </div>
 
@@ -253,9 +253,60 @@ function fromBank(rng,item){
   const shuffled=shuffle(rng,arr);
   return {q:item.q, opts:shuffled.map(o=>o.v), ans:shuffled.findIndex(o=>o.c)};
 }
+function qFingerprint(item){
+  const q = stripHtml(item && item.q);
+  const opts = (item && item.opts ? item.opts : []).map(o=>{
+    if(o && typeof o==='object'){
+      if(o.img) return 'IMG:'+String(o.img).slice(-48);
+      return JSON.stringify(o);
+    }
+    return String(o);
+  }).join('|');
+  return q+'::'+opts;
+}
+const USED_QFP = new Set();
+const USED_STEM = new Set();
+const USED_BANK_IDX = {verbal:new Set(), series:new Set(), eng:new Set(), gk:new Set()};
+
 function pickBank(rng,bank,used){
-  let idx,tries=0; do{ idx=randInt(rng,0,bank.length-1); tries++; }while(used.has(idx)&&tries<80);
-  used.add(idx); return fromBank(rng,bank[idx]);
+  const unused=[];
+  for(let i=0;i<bank.length;i++) if(!used.has(i)) unused.push(i);
+  if(!unused.length) return null;
+  const idx = unused[randInt(rng,0,unused.length-1)];
+  used.add(idx);
+  return fromBank(rng,bank[idx]);
+}
+function acceptItem(item){
+  if(!item || !item.q) return false;
+  const stem = stripHtml(item.q);
+  if(!stem) return false;
+  if(USED_STEM.has(stem)) return false;
+  const fp = qFingerprint(item);
+  if(USED_QFP.has(fp)) return false;
+  USED_STEM.add(stem);
+  USED_QFP.add(fp);
+  return true;
+}
+function takeBank(rng,bank,used,limit){
+  const out=[];
+  let guard=0;
+  while(out.length<limit && guard<bank.length+8){
+    guard++;
+    const item=pickBank(rng,bank,used);
+    if(!item) break;
+    if(acceptItem(item)) out.push(item);
+  }
+  return out;
+}
+function takeGen(rng,genFn,limit,maxTries){
+  const out=[];
+  const tries = maxTries || limit*20;
+  for(let t=0;t<tries && out.length<limit;t++){
+    let item=null;
+    try{ item=genFn(rng); }catch(e){ item=null; }
+    if(item && acceptItem(item)) out.push(item);
+  }
+  return out;
 }
 function stripHtml(s){ if(typeof s!=='string') return ''; return s.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(); }
 
@@ -308,7 +359,46 @@ const VERBAL_BANK = [
   {q:"കേരളത്തിലെ ഏറ്റവും നീളം കൂടിയ നദി?",correct:"പെരിയാർ",wrong:["ഭാരതപ്പുഴ","പമ്പ","ചാലിയാർ"]},
   {q:"ഇന്ത്യയുടെ ദേശീയ മൃഗം?",correct:"കടുവ",wrong:["സിംഹം","ആന","കരടി"]},
   {q:"'സ്കൂൾ' എന്ന പദത്തിന്റെ മലയാളം?",correct:"വിദ്യാലയം",wrong:["വീട്","കട","ആശുപത്രി"]},
-  {q:"വള്ളത്തോളിന്റെ പ്രശസ്ത കൃതി?",correct:"മഗ്ദലന മറിയം",wrong:["വീണപൂവ്","രാമചരിതം","കൃഷ്ണഗാഥ"]}
+  {q:"വള്ളത്തോളിന്റെ പ്രശസ്ത കൃതി?",correct:"മഗ്ദലന മറിയം",wrong:["വീണപൂവ്","രാമചരിതം","കൃഷ്ണഗാഥ"]},
+  {q:"'രാജാവ്' എന്ന പദത്തിന്റെ സ്ത്രീലിംഗം?",correct:"രാജ്ഞി",wrong:["രാജകുമാരി","മന്ത്രി","സേനാനായകൻ"]},
+  {q:"'വലിയ' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"ചെറിയ",wrong:["നീളമുള്ള","പുതിയ","പഴയ"]},
+  {q:"'സന്തോഷം' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"ദുഃഖം",wrong:["ദേഷ്യം","ഭയം","ആശ്ചര്യം"]},
+  {q:"'ജലം' എന്ന പദത്തിന്റെ പര്യായം?",correct:"വെള്ളം",wrong:["തീ","കാറ്റ്","മണ്ണ്"]},
+  {q:"'കുട്ടി' എന്ന പദത്തിന്റെ ബഹുവചനം?",correct:"കുട്ടികൾ",wrong:["കുട്ടിയർ","കുട്ടികളുകൾ","കുട്ടിൾ"]},
+  {q:"ശരിയായ അക്ഷരവിന്യാസം തിരഞ്ഞെടുക്കുക:",correct:"ആശുപത്രി",wrong:["ആസുപത്രി","ആശുപതിരി","ആശുപത്രീ"]},
+  {q:"'ഉയരം' എന്നതിന്റെ വിപരീതം?",correct:"താഴ്ച",wrong:["വീതി","നീളം","ഭാരം"]},
+  {q:"'ഗുരു' എന്ന പദത്തിന്റെ അർത്ഥം?",correct:"അധ്യാപകൻ",wrong:["വിദ്യാർത്ഥി","രാജാവ്","സേനാനി"]},
+  {q:"'സത്യം' എന്നതിന്റെ വിപരീതം?",correct:"അസത്യം",wrong:["നീതി","ധർമം","വിശ്വാസം"]},
+  {q:"'രാത്രി' എന്നതിന്റെ വിപരീതം?",correct:"പകൽ",wrong:["ഉച്ച","സന്ധ്യ","പ്രഭാതം"]},
+  {q:"'പൂവ്' എന്ന പദത്തിന്റെ പര്യായം?",correct:"പുഷ്പം",wrong:["ഇല","കായ","വേര്"]},
+  {q:"'ഇരുട്ട്' എന്നതിന്റെ വിപരീതം?",correct:"വെളിച്ചം",wrong:["നിഴൽ","രാത്രി","മേഘം"]},
+  {q:"'ചൂട്' എന്നതിന്റെ വിപരീതം?",correct:"തണുപ്പ്",wrong:["വെളിച്ചം","ഇരുട്ട്","മഴ"]},
+  {q:"'സഹോദരൻ' എന്നതിന്റെ സ്ത്രീലിംഗം?",correct:"സഹോദരി",wrong:["മകൾ","അമ്മായി","മരുമകൾ"]},
+  {q:"'ധൈര്യം' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"ഭീരുത്വം",wrong:["ശക്തി","വേഗം","സന്തോഷം"]},
+  {q:"'വൃക്ഷം' എന്ന പദത്തിന്റെ പര്യായം?",correct:"മരം",wrong:["പുല്ല്","ലത","കായൽ"]},
+  {q:"'ജയം' എന്നതിന്റെ വിപരീതം?",correct:"പരാജയം",wrong:["യുദ്ധം","മത്സരം","ശ്രമം"]},
+  {q:"'ഗ്രാമം' എന്നതിന്റെ വിപരീതഭാവം?",correct:"നഗരം",wrong:["കുന്ന്","തീരം","താഴ്വര"]},
+  {q:"'മധുരം' എന്നതിന്റെ വിപരീതം?",correct:"കയ്പ്പ്",wrong:["പുളി","ഉപ്പ്","എരിവ്"]},
+  {q:"'തെക്ക്' എന്നതിന്റെ വിപരീതദിശ?",correct:"വടക്ക്",wrong:["കിഴക്ക്","പടിഞ്ഞാറ്","മുകളിൽ"]},
+  {q:"'ചിരി' എന്നതിന്റെ വിപരീതം?",correct:"കരച്ചിൽ",wrong:["കോപം","നിശബ്ദത","ഉറക്കം"]},
+  {q:"'ഭക്ഷണം' എന്ന പദത്തിന്റെ പര്യായം?",correct:"ആഹാരം",wrong:["വസ്ത്രം","വീട്","വഴി"]},
+  {q:"ശരിയായ പദം തിരഞ്ഞെടുക്കുക:",correct:"അധ്യാപകൻ",wrong:["അദ്യാപകൻ","അധ്യപകൻ","അധ്യാപகன்"]},
+  {q:"'നല്ലവൻ' എന്നതിന്റെ വിപരീതം?",correct:"ദുഷ്ടൻ",wrong:["സുന്ദരൻ","ബുദ്ധിമാൻ","ധീരൻ"]},
+  {q:"'വീട്' എന്ന പദത്തിന്റെ പര്യായം?",correct:"ഗൃഹം",wrong:["പാലം","കടൽ","വഴി"]},
+  {q:"'ആകാശം' എന്ന പദത്തിന്റെ പര്യായം?",correct:"വാനം",wrong:["ഭൂമി","സമുദ്രം","കാറ്റ്"]},
+  {q:"'സ്നേഹം' എന്നതിന്റെ വിപരീതം?",correct:"വെറുപ്പ്",wrong:["ദയ","കരുണ","സഹതാപം"]},
+  {q:"'പുതിയ' എന്നതിന്റെ വിപരീതം?",correct:"പഴയ",wrong:["വലിയ","ചെറിയ","നീളമുള്ള"]},
+  {q:"'നന്മ' എന്നതിന്റെ വിപരീതം?",correct:"തിന്മ",wrong:["സത്യം","ധർമം","ദയ"]},
+  {q:"'എളുപ്പം' എന്നതിന്റെ വിപരീതം?",correct:"ബുദ്ധിമുട്ട്",wrong:["വേഗം","സന്തോഷം","ശാന്തി"]},
+  {q:"ശരിയായ അക്ഷരവിന്യാസം:",correct:"പരിസ്ഥിതി",wrong:["പരിഷ്ഥിതി","പരിസിഥി","പരിസ്തിതി"]},
+  {q:"'മകൻ' എന്നതിന്റെ സ്ത്രീലിംഗം?",correct:"മകൾ",wrong:["മരുമകൾ","സഹോദരി","അമ്മ"]},
+  {q:"'ഗായകൻ' എന്നതിന്റെ സ്ത്രീലിംഗം?",correct:"ഗായിക",wrong:["നർത്തകി","അധ്യാപിക","ലേഖിക"]},
+  {q:"'ഇന്ന്' എന്നതിന്റെ ഇംഗ്ലീഷ്?",correct:"Today",wrong:["Yesterday","Tomorrow","Tonight"]},
+  {q:"'നാളെ' എന്നതിന്റെ ഇംഗ്ലീഷ്?",correct:"Tomorrow",wrong:["Today","Yesterday","Now"]},
+  {q:"'ഇന്നലെ' എന്നതിന്റെ ഇംഗ്ലീഷ്?",correct:"Yesterday",wrong:["Today","Tomorrow","Morning"]},
+  {q:"മലയാള അക്ഷരമാലയിലെ ആദ്യ അക്ഷരം?",correct:"അ",wrong:["ആ","ക","ഇ"]},
+  {q:"'അക്ഷരം' കൂട്ടിയാൽ ഉണ്ടാകുന്നത്?",correct:"വാക്ക്",wrong:["ചിത്രം","ഗണിതം","നൃത്തം"]},
+  {q:"ശരിയായ സന്ധി: 'വിദ്യ + ആലയം'?",correct:"വിദ്യാലയം",wrong:["വിദ്യ ആലയം","വിദ്യാലയൻ","വിദ്യലയം"]}
 ];
 
 const SERIES_BANK = [
@@ -321,7 +411,26 @@ const SERIES_BANK = [
   {q:"ജനുവരി, ഫെബ്രുവരി, മാർച്ച്, ?",correct:"ഏപ്രിൽ",wrong:["മേയ്","ജൂൺ","ഡിസംബർ"]},
   {q:"1, 4, 9, 16, ?",correct:"25",wrong:["20","36","18"]},
   {q:"പൂച്ച, നായ, പശു, ?",correct:"ആട്",wrong:["പക്ഷി","മത്സ്യം","പാമ്പ്"]},
-  {q:"ചുവപ്പ്, നീല, പച്ച, ?",correct:"മഞ്ഞ",wrong:["കറുപ്പ്","വെള്ള","ധൂമ്രം"]}
+  {q:"ചുവപ്പ്, നീല, പച്ച, ?",correct:"മഞ്ഞ",wrong:["കറുപ്പ്","വെള്ള","ധൂമ്രം"]},
+  {q:"3, 6, 9, 12, ?",correct:"15",wrong:["14","16","18"]},
+  {q:"11, 22, 33, 44, ?",correct:"55",wrong:["54","56","66"]},
+  {q:"100, 90, 80, 70, ?",correct:"60",wrong:["50","65","55"]},
+  {q:"2, 4, 8, 16, ?",correct:"32",wrong:["24","20","30"]},
+  {q:"Z, Y, X, W, ?",correct:"V",wrong:["U","T","A"]},
+  {q:"P, Q, R, S, ?",correct:"T",wrong:["U","O","V"]},
+  {q:"ചിങ്ങം, കന്നി, തുലാം, ?",correct:"വൃശ്ചികം",wrong:["ധനു","മകരം","കുംഭം"]},
+  {q:"7, 14, 21, 28, ?",correct:"35",wrong:["32","34","42"]},
+  {q:"1, 8, 27, 64, ?",correct:"125",wrong:["100","81","121"]},
+  {q:"21, 18, 15, 12, ?",correct:"9",wrong:["8","10","6"]},
+  {q:"B, D, F, H, ?",correct:"J",wrong:["I","K","G"]},
+  {q:"5, 25, 125, ?",correct:"625",wrong:["250","500","225"]},
+  {q:"2, 3, 5, 7, 11, ?",correct:"13",wrong:["12","14","15"]},
+  {q:"10, 13, 16, 19, ?",correct:"22",wrong:["21","23","20"]},
+  {q:"36, 30, 24, 18, ?",correct:"12",wrong:["10","14","16"]},
+  {q:"8, 16, 24, 32, ?",correct:"40",wrong:["36","42","48"]},
+  {q:"U, T, S, R, ?",correct:"Q",wrong:["P","O","V"]},
+  {q:"വിത്ത്, മുള, ചെടി, ?",correct:"മരം",wrong:["ഇല","പൂവ്","കായ"]},
+  {q:"രാവിലെ, ഉച്ച, വൈകുന്നേരം, ?",correct:"രാത്രി",wrong:["പ്രഭാതം","മദ്ധ്യാഹ്നം","സന്ധ്യ"]}
 ];
 
 const ENGLISH_BANK = [
@@ -334,7 +443,46 @@ const ENGLISH_BANK = [
   {q:"A place where we study?",correct:"school",wrong:["home","park","shop"]},
   {q:"The sun rises in the _____",correct:"east",wrong:["west","north","south"]},
   {q:"How many days in a week?",correct:"seven",wrong:["five","six","eight"]},
-  {q:"We drink _____",correct:"water",wrong:["fire","air","stone"]}
+  {q:"We drink _____",correct:"water",wrong:["fire","air","stone"]},
+  {q:"Opposite of 'hot'?",correct:"cold",wrong:["warm","cool","dry"]},
+  {q:"Plural of 'box'?",correct:"boxes",wrong:["boxs","boxies","boxen"]},
+  {q:"A cow gives us _____",correct:"milk",wrong:["honey","wool","eggs"]},
+  {q:"The opposite of 'day' is _____",correct:"night",wrong:["noon","morning","evening"]},
+  {q:"She _____ a student.",correct:"is",wrong:["am","are","be"]},
+  {q:"I _____ going to school.",correct:"am",wrong:["is","are","be"]},
+  {q:"They _____ playing football.",correct:"are",wrong:["is","am","be"]},
+  {q:"A baby dog is called a _____",correct:"puppy",wrong:["kitten","cub","calf"]},
+  {q:"Opposite of 'up'?",correct:"down",wrong:["left","right","over"]},
+  {q:"We write with a _____",correct:"pen",wrong:["plate","ball","shoe"]},
+  {q:"Plural of 'leaf'?",correct:"leaves",wrong:["leafs","leafes","leavs"]},
+  {q:"Opposite of 'fast'?",correct:"slow",wrong:["quick","rapid","soon"]},
+  {q:"We see with our _____",correct:"eyes",wrong:["ears","nose","hands"]},
+  {q:"We hear with our _____",correct:"ears",wrong:["eyes","tongue","feet"]},
+  {q:"Opposite of 'open'?",correct:"closed",wrong:["wide","start","free"]},
+  {q:"Plural of 'man'?",correct:"men",wrong:["mans","mens","manes"]},
+  {q:"Plural of 'woman'?",correct:"women",wrong:["womans","womens","womanes"]},
+  {q:"The past tense of 'go' is _____",correct:"went",wrong:["goed","gone","going"]},
+  {q:"The past tense of 'eat' is _____",correct:"ate",wrong:["eated","eaten","eating"]},
+  {q:"Choose the correct article: ___ apple",correct:"an",wrong:["a","the","no"]},
+  {q:"Choose the correct article: ___ book",correct:"a",wrong:["an","the","no"]},
+  {q:"A doctor works in a _____",correct:"hospital",wrong:["school","market","station"]},
+  {q:"We cook food in the _____",correct:"kitchen",wrong:["bedroom","bathroom","garage"]},
+  {q:"Opposite of 'full'?",correct:"empty",wrong:["half","more","less"]},
+  {q:"Plural of 'tooth'?",correct:"teeth",wrong:["tooths","teethes","tooth"]},
+  {q:"Plural of 'foot'?",correct:"feet",wrong:["foots","feets","foot"]},
+  {q:"The sun sets in the _____",correct:"west",wrong:["east","north","south"]},
+  {q:"How many months are there in a year?",correct:"twelve",wrong:["ten","eleven","thirteen"]},
+  {q:"A person who teaches is a _____",correct:"teacher",wrong:["doctor","driver","farmer"]},
+  {q:"Opposite of 'clean'?",correct:"dirty",wrong:["neat","fresh","new"]},
+  {q:"Water freezes into _____",correct:"ice",wrong:["steam","smoke","dust"]},
+  {q:"A bee gives us _____",correct:"honey",wrong:["milk","wool","silk"]},
+  {q:"Plural of 'baby'?",correct:"babies",wrong:["babys","babyes","babys"]},
+  {q:"The past tense of 'see' is _____",correct:"saw",wrong:["seen","seed","seeing"]},
+  {q:"The first month of the year is _____",correct:"January",wrong:["March","December","June"]},
+  {q:"The last month of the year is _____",correct:"December",wrong:["January","November","October"]},
+  {q:"How many letters are in the English alphabet?",correct:"26",wrong:["24","25","30"]},
+  {q:"Choose the correct spelling of 'friend':",correct:"friend",wrong:["freind","frend","frind"]},
+  {q:"Choose the correct spelling of 'because':",correct:"because",wrong:["becoz","becouse","becase"]}
 ];
 
 const GK_BANK = [
@@ -347,7 +495,46 @@ const GK_BANK = [
   {q:"കേരളത്തിന്റെ ഔദ്യോഗിക മൃഗം?",correct:"ആന",wrong:["കടുവ","സിംഹം","കരടി"]},
   {q:"ഇന്ത്യയുടെ തലസ്ഥാനം?",correct:"ന്യൂഡൽഹി",wrong:["മുംബൈ","കൊൽക്കത്ത","ചെന്നൈ"]},
   {q:"ഗാന്ധിജി ജനിച്ച നാട്?",correct:"ഗുജറാത്ത്",wrong:["കേരളം","മഹാരാഷ്ട്ര","ബിഹാർ"]},
-  {q:"കേരളത്തിലെ ഏറ്റവും ഉയരമുള്ള കൊടുമുടി?",correct:"ആനമുടി",wrong:["ആഗസ്ത്യമല","ചെമ്പ്ര","പൊൻമുടി"]}
+  {q:"കേരളത്തിലെ ഏറ്റവും ഉയരമുള്ള കൊടുമുടി?",correct:"ആനമുടി",wrong:["ആഗസ്ത്യമല","ചെമ്പ്ര","പൊൻമുടി"]},
+  {q:"ഇന്ത്യയുടെ ദേശീയ പതാകയിലെ നിറങ്ങളുടെ എണ്ണം?",correct:"3",wrong:["2","4","5"]},
+  {q:"അശോകചക്രം ഏത് നിറമാണ്?",correct:"നീല",wrong:["ചുവപ്പ്","പച്ച","കറുപ്പ്"]},
+  {q:"ഇന്ത്യ സ്വതന്ത്രമായ വർഷം?",correct:"1947",wrong:["1950","1942","1930"]},
+  {q:"റിപ്പബ്ലിക് ദിനം?",correct:"ജനുവരി 26",wrong:["ഓഗസ്റ്റ് 15","ഒക്ടോബർ 2","നവംബർ 14"]},
+  {q:"സ്വാതന്ത്ര്യ ദിനം?",correct:"ഓഗസ്റ്റ് 15",wrong:["ജനുവരി 26","ഒക്ടോബർ 2","മേയ് 1"]},
+  {q:"ശിശുദിനം?",correct:"നവംബർ 14",wrong:["ഒക്ടോബർ 2","ജനുവരി 26","സെപ്റ്റംബർ 5"]},
+  {q:"അധ്യാപക ദിനം?",correct:"സെപ്റ്റംബർ 5",wrong:["നവംബർ 14","ഒക്ടോബർ 2","ജൂൺ 5"]},
+  {q:"ലോകത്തിലെ ഏറ്റവും വലിയ സമുദ്രം?",correct:"പസഫിക്",wrong:["അറ്റ്ലാന്റിക്","ഇന്ത്യൻ","ആർട്ടിക്"]},
+  {q:"ഇന്ത്യയുടെ ദക്ഷിണ അറ്റം?",correct:"കന്യാകുമാരി",wrong:["കാശ്മീർ","ഗുജറാത്ത്","സിക്കിം"]},
+  {q:"കേരളത്തിലെ ജില്ലകളുടെ എണ്ണം?",correct:"14",wrong:["12","13","15"]},
+  {q:"ഇന്ത്യയുടെ ആദ്യ രാഷ്ട്രപതി?",correct:"രാജേന്ദ്ര പ്രസാദ്",wrong:["നെഹ്‌റു","അബ്ദുൾ കലാം","സി. രാജഗോപാലാചാരി"]},
+  {q:"ദേശീയ ഗാനം?",correct:"ജന ഗണ മന",wrong:["വന്ദേ മാതരം","ജയ ഹേ","സാരേ ജഹാം"]},
+  {q:"ദേശീയ ഗീതം?",correct:"വന്ദേ മാതരം",wrong:["ജന ഗണ മന","സാരേ ജഹാം സേ അച്ഛ","ജയ ഹേ"]},
+  {q:"സൂര്യൻ ഒരു _____ ആണ്.",correct:"നക്ഷത്രം",wrong:["ഗ്രഹം","ഉപഗ്രഹം","ധൂമകേതു"]},
+  {q:"ഭൂമി ഒരു _____ ആണ്.",correct:"ഗ്രഹം",wrong:["നക്ഷത്രം","ഉപഗ്രഹം","ക്ഷുദ്രഗ്രഹം"]},
+  {q:"ഒരു ദിവസത്തിൽ എത്ര മണിക്കൂർ?",correct:"24",wrong:["12","10","36"]},
+  {q:"ഒരു മണിക്കൂറിൽ എത്ര മിനിറ്റ്?",correct:"60",wrong:["30","100","24"]},
+  {q:"ശ്വസിക്കാൻ ആവശ്യമായ വാതകം?",correct:"ഓക്സിജൻ",wrong:["കാർബൺ ഡൈഓക്സൈഡ്","നൈട്രജൻ","ഹീലിയം"]},
+  {q:"രക്തം പമ്പ് ചെയ്യുന്ന അവയവം?",correct:"ഹൃദയം",wrong:["കരൾ","വൃക്ക","ശ്വാസകോശം"]},
+  {q:"താജ്‌മഹൽ സ്ഥിതി ചെയ്യുന്നത്?",correct:"ആഗ്ര",wrong:["ഡൽഹി","ജയ്പൂർ","മുംബൈ"]},
+  {q:"താജ്‌മഹൽ നിർമ്മിച്ചത്?",correct:"ഷാജഹാൻ",wrong:["അക്ബർ","ഹുമയൂൺ","ഔറംഗസേബ്"]},
+  {q:"ഇന്ത്യയുടെ ദേശീയ വൃക്ഷം?",correct:"ആൽമരം",wrong:["തെങ്ങ്","മാവ്","നീലഗിരി"]},
+  {q:"ഇന്ത്യയുടെ ദേശീയ ഫലം?",correct:"മാങ്ങ",wrong:["വാഴപ്പഴം","ആപ്പിൾ","ഓറഞ്ച്"]},
+  {q:"ലോക പരിസ്ഥിതി ദിനം?",correct:"ജൂൺ 5",wrong:["ഏപ്രിൽ 22","മാർച്ച് 21","സെപ്റ്റംബർ 16"]},
+  {q:"ഗ്രഹങ്ങളുടെ എണ്ണം (സൗരയൂഥം)?",correct:"8",wrong:["9","7","10"]},
+  {q:"സൂര്യനോട് ഏറ്റവും അടുത്ത ഗ്രഹം?",correct:"ബുധൻ",wrong:["ശുക്രൻ","ഭൂമി","ചൊവ്വ"]},
+  {q:"ചുവന്ന ഗ്രഹം എന്നറിയപ്പെടുന്നത്?",correct:"ചൊവ്വ",wrong:["വ്യാഴം","ശനി","ശുക്രൻ"]},
+  {q:"ഏറ്റവും വലിയ ഗ്രഹം?",correct:"വ്യാഴം",wrong:["ശനി","ഭൂമി","നെപ്റ്റ്യൂൺ"]},
+  {q:"കേരളത്തിന്റെ ഔദ്യോഗിക വൃക്ഷം?",correct:"തെങ്ങ്",wrong:["മാവ്","പ്ലാവ്","ആൽ"]},
+  {q:"കേരളത്തിലെ ഏറ്റവും വടക്കുള്ള ജില്ല?",correct:"കാസർഗോഡ്",wrong:["കണ്ണൂർ","വയനാട്","കോഴിക്കോട്"]},
+  {q:"കേരളത്തിലെ ഏറ്റവും തെക്കുള്ള ജില്ല?",correct:"തിരുവനന്തപുരം",wrong:["കൊല്ലം","പത്തനംതിട്ട","ആലപ്പുഴ"]},
+  {q:"ലോകത്തിലെ ഏറ്റവും ഉയരമുള്ള പർവതം?",correct:"എവറസ്റ്റ്",wrong:["കെ2","കാഞ്ചൻജംഗ","ആനമുടി"]},
+  {q:"ഇന്ത്യൻ ബഹിരാകാശ ഏജൻസി?",correct:"ISRO",wrong:["NASA","DRDO","BARC"]},
+  {q:"നീലക്കുറിഞ്ഞി വിടരുന്ന ഇടവേള?",correct:"12 വർഷം",wrong:["1 വർഷം","5 വർഷം","25 വർഷം"]},
+  {q:"കേരളത്തെ കിഴക്ക് നിന്ന് പരിരക്ഷിക്കുന്ന മലനിര?",correct:"പശ്ചിമഘട്ടം",wrong:["കിഴക്കൻഘട്ടം","ഹിമാലയം","അരവല്ലി"]},
+  {q:"ഇന്ത്യയിലെ ഏറ്റവും വലിയ മരുഭൂമി?",correct:"താർ",wrong:["സഹാറ","ഗോബി","അറ്റകാമ"]},
+  {q:"മുന്നാർ ഏത് ജില്ലയിലാണ്?",correct:"ഇടുക്കി",wrong:["വയനാട്","പാലക്കാട്","തൃശ്ശൂർ"]},
+  {q:"ഇന്ത്യയുടെ ദേശീയ നാണയം?",correct:"രൂപ",wrong:["ഡോളർ","യൂറോ","പൗണ്ട്"]},
+  {q:"ഭൂമിയിലെ ഏറ്റവും വലിയ മഹാദേശം?",correct:"ഏഷ്യ",wrong:["ആഫ്രിക്ക","യൂറോപ്പ്","ആസ്ട്രേലിയ"]}
 ];
 
 /* ============================================================
@@ -417,10 +604,10 @@ function genAnalogyNumber(rng){
 }
 
 function genCodingLetter(rng){
-  const word=choice(rng,['CLOUD','RIVER','MOON','STAR','PLANT','EARTH']);
-  const shift=randInt(rng,1,4);
+  const word=choice(rng,['CLOUD','RIVER','MOON','STAR','PLANT','EARTH','APPLE','MANGO','TIGER','INDIA','SCHOOL','WATER']);
+  const shift=randInt(rng,1,5);
   const coded=word.split('').map(ch=>String.fromCharCode(((ch.charCodeAt(0)-65+shift)%26)+65)).join('');
-  const target=choice(rng,['OCEAN','FOREST','STONE','WIND','FLAME']);
+  const target=choice(rng,['OCEAN','FOREST','STONE','WIND','FLAME','HOUSE','PAPER','GREEN','BREAD','TRAIN','MUSIC','LIGHT']);
   const ansCoded=target.split('').map(ch=>String.fromCharCode(((ch.charCodeAt(0)-65+shift)%26)+65)).join('');
   const distract=()=>{
     const s=randInt(rng,1,5); return target.split('').map(ch=>String.fromCharCode(((ch.charCodeAt(0)-65+s)%26)+65)).join('');
@@ -487,11 +674,17 @@ function genOddOneWord(rng){
     {odd:"കൊച്ചി", same:["ചെന്നൈ","മുംബൈ","കൊൽക്കത്ത"]},
     {odd:"രാധാകൃഷ്ണൻ", same:["നെഹ്‌റു","ഇന്ദിര","മോദി"]},
     {odd:"സിംഹം", same:["പശു","ആട്","മാൻ"]},
-    {odd:"വിമാനം", same:["കാർ","ബസ്","ട്രെയിൻ"]}
+    {odd:"വിമാനം", same:["കാർ","ബസ്","ട്രെയിൻ"]},
+    {odd:"തിമിംഗലം", same:["സ്രാവ്","മത്തി","അയല"]},
+    {odd:"ചെന്നൈ", same:["കോഴിക്കോട്","കൊല്ലം","കണ്ണൂർ"]},
+    {odd:"ത്രികോണം", same:["ചതുരം","സമചതുരം","ചതുർഭുജം"]},
+    {odd:"ഗായകൻ", same:["ഡോക്ടർ","അധ്യാപകൻ","കർഷകൻ"]},
+    {odd:"പെൻസിൽ", same:["ആപ്പിൾ","മാങ്ങ","വാഴപ്പഴം"]},
+    {odd:"ഹിമാലയം", same:["പെരിയാർ","ഗംഗ","യമുന"]}
   ];
   const g=choice(rng,groups);
   const opts=shuffle(rng,[g.odd,...g.same]);
-  return {q:`ചുവടെയുള്ളവയിൽ ഓഡ് വൺ കണ്ടെത്തുക:`,opts,ans:opts.indexOf(g.odd)};
+  return {q:`ഓഡ് വൺ കണ്ടെത്തുക: ${opts.join(', ')}`,opts,ans:opts.indexOf(g.odd)};
 }
 
 function genAlwaysHas(rng){
@@ -500,7 +693,11 @@ function genAlwaysHas(rng){
     {q:"ഒരു സ്കൂളിന് എല്ലായ്പ്പോഴും വേണ്ടത്?",correct:"അധ്യാപകർ",wrong:["കെട്ടിടം","ലൈബ്രറി","പ്രിൻസിപ്പൽ"]},
     {q:"ഒരു പുസ്തകത്തിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"പേജുകൾ",wrong:["ചിത്രങ്ങൾ","കഥ","അധ്യായങ്ങൾ"]},
     {q:"ഒരു മലയ്ക്ക് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"ഉയരം",wrong:["വെള്ളം","മൃഗങ്ങൾ","സസ്യങ്ങൾ"]},
-    {q:"ഒരു ഫാക്ടറിക്ക് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"തൊഴിലാളികൾ",wrong:["മെഷീൻ","വൈദ്യുതി","സുരക്ഷ"]}
+    {q:"ഒരു ഫാക്ടറിക്ക് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"തൊഴിലാളികൾ",wrong:["മെഷീൻ","വൈദ്യുതി","സുരക്ഷ"]},
+    {q:"ഒരു നദിക്ക് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"ഒഴുക്ക്",wrong:["പാലം","മത്സ്യബന്ധനം","ബോട്ട്"]},
+    {q:"ഒരു വൃത്തത്തിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"കേന്ദ്രം",wrong:["കോൺ","വശം","വികർണം"]},
+    {q:"ഒരു വർഷത്തിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"മാസങ്ങൾ",wrong:["ഉത്സവം","മഴ","പരീക്ഷ"]},
+    {q:"ഒരു ത്രികോണത്തിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"മൂന്ന് വശം",wrong:["നാല് കോൺ","വൃത്തം","സമചതുരം"]}
   ];
   return fromBank(rng,choice(rng,items));
 }
@@ -511,7 +708,13 @@ function genWordAnalogy(rng){
     {a:"കലണ്ടർ",b:"തീയതി",c:"നിഘണ്ടു",d:"വാക്കുകൾ"},
     {a:"പുക",b:"മലിനീകരണം",c:"യുദ്ധം",d:"നാശം"},
     {a:"അടുക്കള",b:"കിടപ്പുമുറി",c:"സസ്യശാസ്ത്രം",d:"ജന്തുശാസ്ത്രം"},
-    {a:"മഗ്നീഷ്യം",b:"അലുമിനിയം",c:"ബ്രാസ്",d:"കോപ്പർ"}
+    {a:"മഗ്നീഷ്യം",b:"അലുമിനിയം",c:"ബ്രാസ്",d:"കോപ്പർ"},
+    {a:"പുസ്തകം",b:"വായന",c:"ഗാനം",d:"ശ്രവണം"},
+    {a:"തേനീച്ച",b:"തേൻ",c:"പശു",d:"പാൽ"},
+    {a:"കണ്ണ്",b:"കാഴ്ച",c:"ചെവി",d:"ശ്രവണം"},
+    {a:"വിത്ത്",b:"ചെടി",c:"മുട്ട",d:"കുഞ്ഞ്"},
+    {a:"ഡോക്ടർ",b:"ആശുപത്രി",c:"അധ്യാപകൻ",d:"വിദ്യാലയം"},
+    {a:"പക്ഷി",b:"കൂട്",c:"സിംഹം",d:"ഗുഹ"}
   ];
   const p=choice(rng,pairs);
   const wrongs=shuffle(rng,["നടൻ","മാനേജർ","വിജയം","ശാസ്ത്രം","ഇരുമ്പ്"]).slice(0,3);
@@ -574,20 +777,21 @@ function genSymbolOp(rng){
 }
 
 function genDictionaryPos(rng){
-  const letters=['R','O','S','E'];
-  // All permutations of ROSE sorted
+  const words=[['R','O','S','E'],['A','C','E'],['L','I','P'],['B','A','T'],['C','A','T']];
+  const letters=choice(rng,words);
   const perms=[];
   function permute(arr,l,r){
     if(l===r){perms.push(arr.join('')); return;}
     for(let i=l;i<=r;i++){[arr[l],arr[i]]=[arr[i],arr[l]]; permute(arr,l+1,r); [arr[l],arr[i]]=[arr[i],arr[l]];}
   }
-  permute(letters.slice(),0,3);
+  permute(letters.slice(),0,letters.length-1);
   const sorted=[...new Set(perms)].sort();
-  const target='SERO';
+  const target=choice(rng,sorted);
   const pos=sorted.indexOf(target)+1;
-  const distract=()=>pos+choice(rng,[-2,-1,1,2]);
+  const distract=()=>Math.max(1,pos+choice(rng,[-3,-2,-1,1,2,3]));
   const {opts,ans}=uniq4(rng,pos,distract);
-  return {q:`'ROSE' അക്ഷരങ്ങൾ ഉപയോഗിച്ച് ഉണ്ടാക്കാവുന്ന വാക്കുകൾ നിഘണ്ടു ക്രമത്തിൽ ക്രമീകരിച്ചാൽ "SERO" യുടെ സ്ഥാനം?`,opts,ans};
+  const src=letters.join('');
+  return {q:`'${src}' അക്ഷരങ്ങൾ ഉപയോഗിച്ച് ഉണ്ടാക്കാവുന്ന വാക്കുകൾ നിഘണ്ടു ക്രമത്തിൽ ക്രമീകരിച്ചാൽ "${target}" യുടെ സ്ഥാനം?`,opts,ans};
 }
 
 /* Figure based generators using canvas */
@@ -625,7 +829,8 @@ function genOddFigure(rng){
     const v = (i===ansIdx)? correctVariant : sameVariant;
     optsImgs.push({img:drawOddFigure(type,v)});
   }
-  return {q:"ചുവടെയുള്ള ചിത്രങ്ങളിൽ മറ്റുള്ളവയിൽ നിന്ന് വ്യത്യസ്തമായത് ഏത്?",opts:optsImgs,ans:ansIdx};
+  const labels=['ത്രികോണചിത്രം','അമ്പുചിത്രം','ബിന്ദുചിത്രം','വൃത്തചിത്രം'];
+  return {q:`${labels[type]} കൂട്ടത്തിൽ മറ്റുള്ളവയിൽ നിന്ന് വ്യത്യസ്തമായത് ഏത്? (സെറ്റ് ${randInt(rng,11,99)})`,opts:optsImgs,ans:ansIdx};
 }
 
 function drawVennSimple(kind){
@@ -715,7 +920,7 @@ function genMissingNumberFig(rng){
     ctx.beginPath(); ctx.moveTo(60,50); ctx.lineTo(70,50); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(120,50); ctx.lineTo(130,50); ctx.stroke();
   });
-  return {q:`ചിത്രത്തിലെ ചോദ്യചിഹ്നത്തിന് പകരം വരുന്ന സംഖ്യ? (രണ്ടാമത്തേത് = ആദ്യത്തേതിന്റെ ഗുണനം)`,opts,ans,qImg};
+  return {q:`ചിത്രത്തിൽ ${a} നും ${b} നും ശേഷം ചോദ്യചിഹ്നത്തിന് പകരം വരുന്ന സംഖ്യ? (ഗുണനബന്ധം)`,opts,ans,qImg};
 }
 
 function genEquationSolve(rng){
@@ -734,30 +939,147 @@ function genEquationSolve(rng){
 /* ============================================================
    BUILD A FULL LINK (40 Q)
    ============================================================ */
-function buildLink(seed){
-  const rng=mulberry32(seed*2025*86420+13579);
-  let qs=[];
-  const usedVerbal=new Set();
-  const usedSeries=new Set();
-  const usedEng=new Set();
-  const usedGk=new Set();
-
-  // Part A style – Malayalam / Verbal (approx 15)
-  for(let i=0;i<12;i++) qs.push(pickBank(rng,VERBAL_BANK,usedVerbal));
-  for(let i=0;i<3;i++) qs.push(pickBank(rng,SERIES_BANK,usedSeries));
-
-  // Part B style – English (approx 8)
-  for(let i=0;i<8;i++) qs.push(pickBank(rng,ENGLISH_BANK,usedEng));
-
-  // Part C style – General Knowledge (approx 12)
-  for(let i=0;i<12;i++) qs.push(pickBank(rng,GK_BANK,usedGk));
-
-  // Fill remaining with simple series / verbal
-  while(qs.length<40){
-    if(rng()<0.5) qs.push(pickBank(rng,SERIES_BANK,usedSeries));
-    else qs.push(pickBank(rng,VERBAL_BANK,usedVerbal));
+function genArithmeticSeries(rng){
+  const start=randInt(rng,1,40);
+  const step=randInt(rng,2,12);
+  const seq=[];
+  for(let i=0;i<5;i++) seq.push(start+i*step);
+  const correct=start+5*step;
+  const distract=()=>correct+choice(rng,[-step*2,-step,step,step*2,3]);
+  const {opts,ans}=uniq4(rng,correct,distract);
+  return {q:`ശ്രേണി പൂരിപ്പിക്കുക: ${seq.join(', ')}, ?`,opts,ans};
+}
+function genGeometricSeries(rng){
+  const start=choice(rng,[2,3,4,5]);
+  const mul=choice(rng,[2,3]);
+  const seq=[start];
+  for(let i=0;i<4;i++) seq.push(seq[seq.length-1]*mul);
+  const correct=seq[seq.length-1]*mul;
+  const distract=()=>correct+choice(rng,[-start*mul,-mul,mul,start]);
+  const {opts,ans}=uniq4(rng,correct,distract);
+  return {q:`ശ്രേണി: ${seq.join(', ')}, ?`,opts,ans};
+}
+function genSkipLetter(rng){
+  const start=randInt(rng,0,18);
+  const skip=randInt(rng,1,3);
+  const seq=[];
+  for(let i=0;i<5;i++) seq.push(String.fromCharCode(65+start+i*(skip+1)));
+  const correct=String.fromCharCode(65+start+5*(skip+1));
+  if(correct.charCodeAt(0)>90) return genSkipLetter(rng);
+  const distract=()=>String.fromCharCode(65+randInt(rng,0,25));
+  const {opts,ans}=uniq4(rng,correct,distract);
+  return {q:`അടുത്ത അക്ഷരം: ${seq.join(', ')}, ?`,opts,ans};
+}
+function genSimpleAdd(rng){
+  const op=choice(rng,['+','−','×']);
+  let correct,q;
+  if(op==='+'){ const a=randInt(rng,12,80), b=randInt(rng,8,60); correct=a+b; q=`${a} + ${b} = ?`; }
+  else if(op==='−'){ const a=randInt(rng,20,90), b=randInt(rng,5,a-1); correct=a-b; q=`${a} − ${b} = ?`; }
+  else { const x=randInt(rng,4,12), y=randInt(rng,4,12); correct=x*y; q=`${x} × ${y} = ?`; }
+  const distract=()=>correct+choice(rng,[-10,-6,-3,-1,1,3,6,10]);
+  const {opts,ans}=uniq4(rng,correct,distract);
+  return {q,opts,ans};
+}
+function genDayOffset(rng){
+  const days=['ഞായർ','തിങ്കൾ','ചൊവ്വ','ബുധൻ','വ്യാഴം','വെള്ളി','ശനി'];
+  const i=randInt(rng,0,6); const k=randInt(rng,2,10);
+  const correct=days[(i+k)%7];
+  const distract=()=>choice(rng,days.filter(d=>d!==correct));
+  const {opts,ans}=uniq4(rng,correct,distract);
+  return {q:`${days[i]} മുതൽ ${k} ദിവസം കഴിഞ്ഞാൽ ഏത് ദിവസം?`,opts,ans};
+}
+function genPlaceValue(rng){
+  const n=randInt(rng,125,986);
+  const kind=randInt(rng,0,2);
+  let correct,q;
+  if(kind===0){ correct=n%10; q=`${n} എന്ന സംഖ്യയിലെ ഒന്നിന്റെ സ്ഥാനത്തെ അക്കം?`; }
+  else if(kind===1){ correct=Math.floor(n/10)%10; q=`${n} എന്ന സംഖ്യയിലെ പത്തിന്റെ സ്ഥാനത്തെ അക്കം?`; }
+  else { correct=Math.floor(n/100)%10; q=`${n} എന്ന സംഖ്യയിലെ നൂറിന്റെ സ്ഥാനത്തെ അക്കം?`; }
+  const distract=()=>randInt(rng,0,9);
+  const {opts,ans}=uniq4(rng,correct,distract);
+  return {q,opts,ans};
+}
+function genPerimeter(rng){
+  if(rng()<0.5){
+    const s=randInt(rng,4,20);
+    const correct=4*s;
+    const distract=()=>correct+choice(rng,[-4,-2,s,2*s]);
+    const {opts,ans}=uniq4(rng,correct,distract);
+    return {q:`${s} സെ.മീ വശമുള്ള സമചതുരത്തിന്റെ ചുറ്റളവ്?`,opts,ans};
   }
-  return qs.slice(0,40);
+  const l=randInt(rng,8,20), b=randInt(rng,3,l-2);
+  const correct=2*(l+b);
+  const distract=()=>correct+choice(rng,[-4,-2,2,4,l]);
+  const {opts,ans}=uniq4(rng,correct,distract);
+  return {q:`നീളം ${l} സെ.മീ, വീതി ${b} സെ.മീ ഉള്ള ചതുരത്തിന്റെ ചുറ്റളവ്?`,opts,ans};
+}
+function genFamilyRelation(rng){
+  const items=[
+    {q:"രാജുവിന്റെ അമ്മയുടെ ഭർത്താവ് രാജുവിന്റെ?",correct:"അച്ഛൻ",wrong:["അമ്മാവൻ","മുത്തച്ഛൻ","സഹോദരൻ"]},
+    {q:"മീനയുടെ അച്ഛന്റെ അമ്മ മീനയുടെ?",correct:"മുത്തശ്ശി",wrong:["അമ്മായി","സഹോദരി","മരുമകൾ"]},
+    {q:"അനുവിന്റെ അച്ഛന്റെ സഹോദരൻ അനുവിന്റെ?",correct:"അമ്മാവൻ",wrong:["മുത്തച്ഛൻ","ചേട്ടൻ","മരുമകൻ"]},
+    {q:"വിനുവിന്റെ അമ്മയുടെ സഹോദരി വിനുവിന്റെ?",correct:"അമ്മായി",wrong:["മുത്തശ്ശി","സഹോദരി","മരുമകൾ"]},
+    {q:"കാവ്യയുടെ സഹോദരന്റെ മകൾ കാവ്യയുടെ?",correct:"മരുമകൾ",wrong:["മകൾ","സഹോദരി","അമ്മായി"]},
+    {q:"അജയുടെ അച്ഛന്റെ അച്ഛൻ അജയുടെ?",correct:"മുത്തച്ഛൻ",wrong:["അമ്മാവൻ","ചേട്ടൻ","മരുമകൻ"]}
+  ];
+  return fromBank(rng,choice(rng,items));
+}
+
+function buildLink(seed){
+  const rng=mulberry32(seed*2025*86420 + 13579 + USED_STEM.size*17);
+  let qs=[];
+
+  // Banks are consumed globally — the same item never appears in another link.
+  const verbal = takeBank(rng, VERBAL_BANK, USED_BANK_IDX.verbal, 8);
+  const series = takeBank(rng, SERIES_BANK, USED_BANK_IDX.series, 2);
+  const english = takeBank(rng, ENGLISH_BANK, USED_BANK_IDX.eng, 6);
+  const gk = takeBank(rng, GK_BANK, USED_BANK_IDX.gk, 6);
+
+  const procFns = [
+    genLetterSeries, genNumberSeries, genAnalogyNumber, genCodingLetter,
+    genDirection, genCubePaint, genAgeSum, genWorkDays, genOddOneWord,
+    genAlwaysHas, genWordAnalogy, genClockAngle, genFractionSum,
+    genLCMRemainder, genUnitDigit, genSymbolOp, genDictionaryPos,
+    genOddFigure, genVennRelation, genCountShapes, genMissingNumberFig,
+    genEquationSolve, genArithmeticSeries, genGeometricSeries, genSkipLetter,
+    genSimpleAdd, genDayOffset, genPlaceValue, genPerimeter, genFamilyRelation
+  ];
+  const procedural=[];
+  const fnOrder = shuffle(rng, procFns);
+  for(const fn of fnOrder){
+    if(procedural.length>=18) break;
+    procedural.push(...takeGen(rng, fn, 1, 28));
+  }
+
+  qs = qs.concat(verbal, series, english, gk, procedural);
+
+  const leftoverBanks = [
+    [VERBAL_BANK, USED_BANK_IDX.verbal],
+    [GK_BANK, USED_BANK_IDX.gk],
+    [ENGLISH_BANK, USED_BANK_IDX.eng],
+    [SERIES_BANK, USED_BANK_IDX.series]
+  ];
+  let guard=0;
+  while(qs.length<Q_PER_LINK && guard<500){
+    guard++;
+    if(rng()<0.4){
+      const pair=choice(rng, leftoverBanks);
+      const extra=takeBank(rng, pair[0], pair[1], 1);
+      if(extra.length){ qs.push(extra[0]); continue; }
+    }
+    const extra=takeGen(rng, choice(rng, procFns), 1, 22);
+    if(extra.length) qs.push(extra[0]);
+  }
+  while(qs.length<Q_PER_LINK){
+    const extra=takeGen(rng, genArithmeticSeries, 1, 40);
+    if(extra.length) qs.push(extra[0]);
+    else {
+      const extra2=takeGen(rng, genSimpleAdd, 1, 40);
+      if(extra2.length) qs.push(extra2[0]);
+      else break;
+    }
+  }
+  return qs.slice(0, Q_PER_LINK);
 }
 
 /* ============================================================
@@ -770,8 +1092,8 @@ let submittedState = {};
 let resultState = {};
 
 function sectionTag(qi){
-  if(qi<30) return {cls:'tag-verbal', label:'Verbal / ഭാഷാ യുക്തി'};
-  if(qi<60) return {cls:'tag-nonverbal', label:'Non-Verbal / അലിഖിത യുക്തി'};
+  if(qi<16) return {cls:'tag-verbal', label:'Verbal / ഭാഷാ യുക്തി'};
+  if(qi<28) return {cls:'tag-nonverbal', label:'Non-Verbal / അലിഖിത യുക്തി'};
   return {cls:'tag-analytical', label:'Analytical / വിശകലന യുക്തി'};
 }
 
