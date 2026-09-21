@@ -106,9 +106,23 @@ body{
 .gen-note{text-align:center;font-family:'Anek Malayalam';color:#475569;font-size:.85rem;margin:4px 0 10px;}
 
 .footer-note{text-align:center;color:#0f172a;font-family:'Anek Malayalam';font-size:.95rem;padding:18px 6px 30px;opacity:.85;}
+
+.watermark-print{display:none;}
+@media print{
+  body{background:#fff;}
+  .top-banner,.instr-box,.nav-title,.nav-links,.gf-namecard,.gf-submitbar,.gform-topbar,.top-pdf-bar,.gf-actionbtns,.gf-resultcard,.gf-progress,.footer-note,.gen-note,.pdf-note{display:none !important;}
+  .link-section{display:none !important;}
+  .link-section.printing{display:block !important;}
+  .gform-header{background:#fff !important;color:#0D9488 !important;border:2px solid #0D9488;}
+  .gform-body{box-shadow:none;}
+  .gf-qcard{break-inside:avoid;border:1px solid #ccc;background:#fff;}
+  .watermark-print{display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;overflow:hidden;}
+  .watermark-print span{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%) rotate(-32deg);font-size:46px;font-weight:900;color:rgba(13,148,136,0.16);white-space:nowrap;font-family:Poppins,Arial,sans-serif;letter-spacing:4px;}
+}
 </style>
 </head>
 <body>
+<div class="watermark-print"><span id="watermarkPrintText"></span></div>
 <div id="wrap">
   <div class="top-banner">
     <h1>LSS PAPER-1 MODEL EXAM</h1>
@@ -217,8 +231,6 @@ function mlRenderBlock(text, maxWidthMM, fontSizePt, bold, lineHeightMM, colorHe
   };
 }
 
-
-
 const PDF_PASSWORD = "2026LSS";
 const EXAM_HEADER = "LSS PAPER-1 MODEL EXAM";
 const WATERMARK_TEXT = "LSS PAPER-1 MODEL EXAM";
@@ -266,7 +278,7 @@ function qFingerprint(item){
 }
 const USED_QFP = new Set();
 const USED_STEM = new Set();
-const USED_BANK_IDX = {verbal:new Set(), series:new Set(), eng:new Set(), gk:new Set()};
+const USED_BANK_IDX = {verbal:new Set(), series:new Set(), eng:new Set(), gk:new Set(), extra:new Set()};
 
 function pickBank(rng,bank,used){
   const unused=[];
@@ -332,209 +344,197 @@ function pathPolygon(ctx,pts,close){
    VERBAL & SERIES BANKS (text based)
    ============================================================ */
 const VERBAL_BANK = [
-  {q:"'മാഴ്കുക' എന്ന വാക്കിന്റെ അർത്ഥം?",correct:"മറയ്ക്കുക",wrong:["തുറക്കുക","എഴുതുക","വായിക്കുക"]},
-  {q:"'പഴ + പുഴുങ്ങൽ' യുടെ ശരിയായ സന്ധി?",correct:"പഴുപ്പുഴുങ്ങൽ",wrong:["പഴപുഴുങ്ങൽ","പഴംപുഴുങ്ങൽ","പഴുങ്ങൽ"]},
-  {q:"'ഭൂമിയെ സംബന്ധിച്ച' എന്ന അർത്ഥത്തിൽ ഉപയോഗിക്കുന്ന വാക്ക്?",correct:"ഭൗമം",wrong:["ഗ്രാമം","ഭാസുരം","അഭ്രം"]},
-  {q:"ശരിയായി എഴുതിയ പദം ഏത്?",correct:"വിദ്യാർത്ഥി",wrong:["വിദ്യാര്ഥി","വിധ്യാർത്ഥി","വിദ്യാർഥി"]},
-  {q:"'അക്ഷി, ലോചനം, നയനം' — കൂട്ടത്തിൽ ചേരുന്നത്?",correct:"മിഴി",wrong:["നല്ലിം","സ്വനം","ഗാനം"]},
-  {q:"'അതിവിശിഷ്ടം' എന്ന അർത്ഥത്തിൽ ഉപയോഗിക്കാവുന്നത്?",correct:"അസാമാന്യം",wrong:["അപാരം","ആമോദം","അസ്വാസ്ഥ്യം"]},
-  {q:"കവിതയിൽ 'അമ്മയുടെ കണ്ണുനീർ' നക്ഷത്രമായി മാറുന്നത് എപ്പോൾ?",correct:"അന്തിക്ക്",wrong:["ഉച്ചയ്ക്ക്","പുലർകാലത്ത്","രാത്രി"]},
-  {q:"'സ്വയംകഥ' എഴുതുന്നത് ആരാണ്?",correct:"സുഗതകുമാരി",wrong:["വള്ളത്തോൾ","കുമാരനാശാൻ","ഉള്ളൂർ"]},
-  {q:"ശരിയായ വിരാമചിഹ്നം ഉള്ളത്?",correct:"“ഞാൻ പഠിക്കുകയാണ്!” അവൻ പറഞ്ഞു.",wrong:["ഞാൻ പഠിക്കുകയാണ് അവൻ പറഞ്ഞു.","“ഞാൻ പഠിക്കുകയാണ് അവൻ പറഞ്ഞു","ഞാൻ പഠിക്കുകയാണ്! അവൻ പറഞ്ഞു"]},
-  {q:"'കാളകൾ അകന്നുപോകാതിരിക്കാൻ' ഉപയോഗിക്കുന്ന ഉപകരണം?",correct:"കടിഞ്ഞാൺ",wrong:["കലപ്പ","വാൾ","കോടാലി"]},
-  {q:"കേരളത്തിന്റെ ഔദ്യോഗിക ഭാഷ?",correct:"മലയാളം",wrong:["തമിഴ്","ഹിന്ദി","സംസ്കൃതം"]},
-  {q:"ഇന്ത്യയുടെ ദേശീയ പക്ഷി?",correct:"മയിൽ",wrong:["കാക്ക","പ്രാവ്","കോഴി"]},
-  {q:"ഭൂമിയുടെ ഉപഗ്രഹം?",correct:"ചന്ദ്രൻ",wrong:["സൂര്യൻ","ചൊവ്വ","ശുക്രൻ"]},
-  {q:"'ഓണം' ആഘോഷിക്കുന്ന മാസം?",correct:"ചിങ്ങം",wrong:["കന്നി","തുലാം","മകരം"]},
-  {q:"ഗാന്ധിജിയുടെ ജന്മദിനം?",correct:"ഒക്ടോബർ 2",wrong:["ജനുവരി 26","ഓഗസ്റ്റ് 15","നവംബർ 14"]},
-  {q:"ഇന്ത്യയുടെ ആദ്യ പ്രധാനമന്ത്രി?",correct:"ജവഹർലാൽ നെഹ്‌റു",wrong:["ഗാന്ധിജി","സർദാർ പട്ടേൽ","രാജേന്ദ്ര പ്രസാദ്"]},
-  {q:"കേരളത്തിന്റെ തലസ്ഥാനം?",correct:"തിരുവനന്തപുരം",wrong:["കൊച്ചി","കോഴിക്കോട്","തൃശ്ശൂർ"]},
-  {q:"'ഹരിതാഭം' എന്ന പദത്തിന്റെ അർത്ഥം?",correct:"പച്ചനിറമുള്ളത്",wrong:["വെള്ളനിറം","ചുവപ്പ്","മഞ്ഞ"]},
-  {q:"'സുഹൃത്ത്' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"ശത്രു",wrong:["സുഹൃത്തുക്കൾ","സഹോദരൻ","അധ്യാപകൻ"]},
-  {q:"കേരളത്തിലെ പ്രശസ്ത നൃത്തരൂപം?",correct:"കഥകളി",wrong:["ഭരതനാട്യം","കുചിപ്പുടി","ഒഡിസി"]},
-  {q:"ഭാരതത്തിന്റെ ദേശീയ പുഷ്പം?",correct:"താമര",wrong:["റോസ്","മുല്ല","ചെണ്ടുമല്ലി"]},
-  {q:"സൂര്യൻ ഉദിക്കുന്ന ദിശ?",correct:"കിഴക്ക്",wrong:["പടിഞ്ഞാറ്","വടക്ക്","തെക്ക്"]},
-  {q:"ഒരു ആഴ്ചയിൽ എത്ര ദിവസം?",correct:"7",wrong:["5","6","8"]},
-  {q:"'അമ്മ' എന്ന പദത്തിന്റെ ഇംഗ്ലീഷ്?",correct:"Mother",wrong:["Father","Sister","Brother"]},
-  {q:"കേരളത്തിലെ ഏറ്റവും നീളം കൂടിയ നദി?",correct:"പെരിയാർ",wrong:["ഭാരതപ്പുഴ","പമ്പ","ചാലിയാർ"]},
-  {q:"ഇന്ത്യയുടെ ദേശീയ മൃഗം?",correct:"കടുവ",wrong:["സിംഹം","ആന","കരടി"]},
-  {q:"'സ്കൂൾ' എന്ന പദത്തിന്റെ മലയാളം?",correct:"വിദ്യാലയം",wrong:["വീട്","കട","ആശുപത്രി"]},
-  {q:"വള്ളത്തോളിന്റെ പ്രശസ്ത കൃതി?",correct:"മഗ്ദലന മറിയം",wrong:["വീണപൂവ്","രാമചരിതം","കൃഷ്ണഗാഥ"]},
-  {q:"'രാജാവ്' എന്ന പദത്തിന്റെ സ്ത്രീലിംഗം?",correct:"രാജ്ഞി",wrong:["രാജകുമാരി","മന്ത്രി","സേനാനായകൻ"]},
-  {q:"'വലിയ' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"ചെറിയ",wrong:["നീളമുള്ള","പുതിയ","പഴയ"]},
-  {q:"'സന്തോഷം' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"ദുഃഖം",wrong:["ദേഷ്യം","ഭയം","ആശ്ചര്യം"]},
-  {q:"'ജലം' എന്ന പദത്തിന്റെ പര്യായം?",correct:"വെള്ളം",wrong:["തീ","കാറ്റ്","മണ്ണ്"]},
-  {q:"'കുട്ടി' എന്ന പദത്തിന്റെ ബഹുവചനം?",correct:"കുട്ടികൾ",wrong:["കുട്ടിയർ","കുട്ടികളുകൾ","കുട്ടിൾ"]},
-  {q:"ശരിയായ അക്ഷരവിന്യാസം തിരഞ്ഞെടുക്കുക:",correct:"ആശുപത്രി",wrong:["ആസുപത്രി","ആശുപതിരി","ആശുപത്രീ"]},
-  {q:"'ഉയരം' എന്നതിന്റെ വിപരീതം?",correct:"താഴ്ച",wrong:["വീതി","നീളം","ഭാരം"]},
-  {q:"'ഗുരു' എന്ന പദത്തിന്റെ അർത്ഥം?",correct:"അധ്യാപകൻ",wrong:["വിദ്യാർത്ഥി","രാജാവ്","സേനാനി"]},
-  {q:"'സത്യം' എന്നതിന്റെ വിപരീതം?",correct:"അസത്യം",wrong:["നീതി","ധർമം","വിശ്വാസം"]},
-  {q:"'രാത്രി' എന്നതിന്റെ വിപരീതം?",correct:"പകൽ",wrong:["ഉച്ച","സന്ധ്യ","പ്രഭാതം"]},
-  {q:"'പൂവ്' എന്ന പദത്തിന്റെ പര്യായം?",correct:"പുഷ്പം",wrong:["ഇല","കായ","വേര്"]},
-  {q:"'ഇരുട്ട്' എന്നതിന്റെ വിപരീതം?",correct:"വെളിച്ചം",wrong:["നിഴൽ","രാത്രി","മേഘം"]},
-  {q:"'ചൂട്' എന്നതിന്റെ വിപരീതം?",correct:"തണുപ്പ്",wrong:["വെളിച്ചം","ഇരുട്ട്","മഴ"]},
-  {q:"'സഹോദരൻ' എന്നതിന്റെ സ്ത്രീലിംഗം?",correct:"സഹോദരി",wrong:["മകൾ","അമ്മായി","മരുമകൾ"]},
-  {q:"'ധൈര്യം' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"ഭീരുത്വം",wrong:["ശക്തി","വേഗം","സന്തോഷം"]},
-  {q:"'വൃക്ഷം' എന്ന പദത്തിന്റെ പര്യായം?",correct:"മരം",wrong:["പുല്ല്","ലത","കായൽ"]},
-  {q:"'ജയം' എന്നതിന്റെ വിപരീതം?",correct:"പരാജയം",wrong:["യുദ്ധം","മത്സരം","ശ്രമം"]},
-  {q:"'ഗ്രാമം' എന്നതിന്റെ വിപരീതഭാവം?",correct:"നഗരം",wrong:["കുന്ന്","തീരം","താഴ്വര"]},
-  {q:"'മധുരം' എന്നതിന്റെ വിപരീതം?",correct:"കയ്പ്പ്",wrong:["പുളി","ഉപ്പ്","എരിവ്"]},
-  {q:"'തെക്ക്' എന്നതിന്റെ വിപരീതദിശ?",correct:"വടക്ക്",wrong:["കിഴക്ക്","പടിഞ്ഞാറ്","മുകളിൽ"]},
-  {q:"'ചിരി' എന്നതിന്റെ വിപരീതം?",correct:"കരച്ചിൽ",wrong:["കോപം","നിശബ്ദത","ഉറക്കം"]},
-  {q:"'ഭക്ഷണം' എന്ന പദത്തിന്റെ പര്യായം?",correct:"ആഹാരം",wrong:["വസ്ത്രം","വീട്","വഴി"]},
-  {q:"ശരിയായ പദം തിരഞ്ഞെടുക്കുക:",correct:"അധ്യാപകൻ",wrong:["അദ്യാപകൻ","അധ്യപകൻ","അധ്യാപகன்"]},
-  {q:"'നല്ലവൻ' എന്നതിന്റെ വിപരീതം?",correct:"ദുഷ്ടൻ",wrong:["സുന്ദരൻ","ബുദ്ധിമാൻ","ധീരൻ"]},
-  {q:"'വീട്' എന്ന പദത്തിന്റെ പര്യായം?",correct:"ഗൃഹം",wrong:["പാലം","കടൽ","വഴി"]},
-  {q:"'ആകാശം' എന്ന പദത്തിന്റെ പര്യായം?",correct:"വാനം",wrong:["ഭൂമി","സമുദ്രം","കാറ്റ്"]},
-  {q:"'സ്നേഹം' എന്നതിന്റെ വിപരീതം?",correct:"വെറുപ്പ്",wrong:["ദയ","കരുണ","സഹതാപം"]},
-  {q:"'പുതിയ' എന്നതിന്റെ വിപരീതം?",correct:"പഴയ",wrong:["വലിയ","ചെറിയ","നീളമുള്ള"]},
-  {q:"'നന്മ' എന്നതിന്റെ വിപരീതം?",correct:"തിന്മ",wrong:["സത്യം","ധർമം","ദയ"]},
-  {q:"'എളുപ്പം' എന്നതിന്റെ വിപരീതം?",correct:"ബുദ്ധിമുട്ട്",wrong:["വേഗം","സന്തോഷം","ശാന്തി"]},
-  {q:"ശരിയായ അക്ഷരവിന്യാസം:",correct:"പരിസ്ഥിതി",wrong:["പരിഷ്ഥിതി","പരിസിഥി","പരിസ്തിതി"]},
-  {q:"'മകൻ' എന്നതിന്റെ സ്ത്രീലിംഗം?",correct:"മകൾ",wrong:["മരുമകൾ","സഹോദരി","അമ്മ"]},
-  {q:"'ഗായകൻ' എന്നതിന്റെ സ്ത്രീലിംഗം?",correct:"ഗായിക",wrong:["നർത്തകി","അധ്യാപിക","ലേഖിക"]},
-  {q:"'ഇന്ന്' എന്നതിന്റെ ഇംഗ്ലീഷ്?",correct:"Today",wrong:["Yesterday","Tomorrow","Tonight"]},
-  {q:"'നാളെ' എന്നതിന്റെ ഇംഗ്ലീഷ്?",correct:"Tomorrow",wrong:["Today","Yesterday","Now"]},
-  {q:"'ഇന്നലെ' എന്നതിന്റെ ഇംഗ്ലീഷ്?",correct:"Yesterday",wrong:["Today","Tomorrow","Morning"]},
-  {q:"മലയാള അക്ഷരമാലയിലെ ആദ്യ അക്ഷരം?",correct:"അ",wrong:["ആ","ക","ഇ"]},
-  {q:"'അക്ഷരം' കൂട്ടിയാൽ ഉണ്ടാകുന്നത്?",correct:"വാക്ക്",wrong:["ചിത്രം","ഗണിതം","നൃത്തം"]},
-  {q:"ശരിയായ സന്ധി: 'വിദ്യ + ആലയം'?",correct:"വിദ്യാലയം",wrong:["വിദ്യ ആലയം","വിദ്യാലയൻ","വിദ്യലയം"]}
+  {q:"'ചിന്താവിഷ്ടയായ സീത' യുടെ കർത്താവ്?",correct:"കുമാരനാശാൻ",wrong:["വള്ളത്തോൾ","ഉള്ളൂർ","വൈലോപ്പിള്ളി"]},
+  {q:"'കരുണ' എന്ന ഖണ്ഡകാവ്യം രചിച്ചത്?",correct:"കുമാരനാശാൻ",wrong:["ചങ്ങമ്പുഴ","ജി. ശങ്കരക്കുറുപ്പ്","ഇടശ്ശേരി"]},
+  {q:"'നീണ്ട + അലകൾ' യുടെ ശരിയായ സന്ധി?",correct:"നീണ്ടലകൾ",wrong:["നീണ്ട അലകൾ","നീണ്ടാലകൾ","നീണ്ടയലകൾ"]},
+  {q:"'ദേവ + ആലയം' യുടെ ശരിയായ സന്ധി?",correct:"ദേവാലയം",wrong:["ദേവ ആലയം","ദേവലയം","ദേവാലയൻ"]},
+  {q:"'മഹാ + ഋഷി' യുടെ ശരിയായ സന്ധി?",correct:"മഹർഷി",wrong:["മഹാഋഷി","മഹാരിഷി","മഹർഷീ"]},
+  {q:"'ഗംഗാ + ഉദകം' യുടെ ശരിയായ സന്ധി?",correct:"ഗംഗോദകം",wrong:["ഗംഗാഉദകം","ഗംഗുദകം","ഗംഗോദകൻ"]},
+  {q:"'സൂര്യ + ഉദയം' യുടെ ശരിയായ സന്ധി?",correct:"സൂര്യോദയം",wrong:["സൂര്യഉദയം","സൂര്യുദയം","സൂര്യോദയൻ"]},
+  {q:"'ഹിതകരം' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"അഹിതകരം",wrong:["സുഹിതം","അനുകൂലം","ശ്രേയസ്സ്"]},
+  {q:"'ആരംഭം' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"അന്ത്യം",wrong:["മധ്യം","ആരംഭിക","മുന്നേറ്റം"]},
+  {q:"'സ്വാതന്ത്ര്യം' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"അടിമത്തം",wrong:["സ്വാശ്രയം","സ്വബോധം","സ്വരാജ്"]},
+  {q:"'പ്രകാശം' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"അന്ധകാരം",wrong:["ദീപ്തി","തേജസ്സ്","പ്രഭ"]},
+  {q:"'ക്ഷമ' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"അക്ഷമ",wrong:["സഹനം","ശാന്തി","ദയ"]},
+  {q:"'ഊഷ്മളം' എന്ന പദത്തിന്റെ വിപരീതം?",correct:"ശീതളം",wrong:["ഉഷ്ണം","താപം","ജ്വലനം"]},
+  {q:"'അഗ്നി' എന്ന പദത്തിന്റെ പര്യായം അല്ലാത്തത്?",correct:"സലിലം",wrong:["അനലൻ","ഹുതാശനൻ","ജ്വലനൻ"]},
+  {q:"'വായു' എന്ന പദത്തിന്റെ പര്യായം അല്ലാത്തത്?",correct:"അംബു",wrong:["പവനൻ","മാരുതൻ","അനിലൻ"]},
+  {q:"'സമുദ്രം' എന്ന പദത്തിന്റെ പര്യായം അല്ലാത്തത്?",correct:"ഗിരി",wrong:["അംബുധി","ജലനിധി","അർണവം"]},
+  {q:"'പർവതം' എന്ന പദത്തിന്റെ പര്യായം അല്ലാത്തത്?",correct:"തരംഗം",wrong:["ശൈലം","മഹീധരം","അദ്രി"]},
+  {q:"'രാത്രി' എന്ന പദത്തിന്റെ പര്യായം അല്ലാത്തത്?",correct:"ദിനം",wrong:["നിശ","രജനി","ക്ഷപ"]},
+  {q:"'അധ്യാപകൻ' എന്ന പദത്തിന്റെ സ്ത്രീലിംഗം?",correct:"അധ്യാപിക",wrong:["അധ്യാപിനി","ശിക്ഷിക","പാഠിക"]},
+  {q:"'ലേഖകൻ' എന്ന പദത്തിന്റെ സ്ത്രീലിംഗം?",correct:"ലേഖിക",wrong:["ലേഖിനി","എഴുത്തുകാരി മാത്രം","കവയിത്രി"]},
+  {q:"'നർത്തകൻ' എന്ന പദത്തിന്റെ സ്ത്രീലിംഗം?",correct:"നർത്തകി",wrong:["നടി മാത്രം","ഗായിക","ലേഖിക"]},
+  {q:"താഴെ പറയുന്നതിൽ അന്യപദം ഏത്? വീണ, മൃദംഗം, തബല, ചിത്രം",correct:"ചിത്രം",wrong:["വീണ","മൃദംഗം","തബല"]},
+  {q:"താഴെ പറയുന്നതിൽ അന്യപദം ഏത്? ഗംഗ, യമുന, സരസ്വതി, ഹിമാലയം",correct:"ഹിമാലയം",wrong:["ഗംഗ","യമുന","സരസ്വതി"]},
+  {q:"'സഹ്യൻ' എന്നറിയപ്പെടുന്ന മലനിര?",correct:"പശ്ചിമഘട്ടം",wrong:["ഹിമാലയം","അരവല്ലി","വിന്ധ്യ"]},
+  {q:"ശരിയായ അക്ഷരവിന്യാസം തിരഞ്ഞെടുക്കുക (ആതിഥ്യം):",correct:"ആതിഥ്യം",wrong:["ആധിഥ്യം","ആതിധ്യം","ആത്തിഥ്യം"]},
+  {q:"ശരിയായ അക്ഷരവിന്യാസം തിരഞ്ഞെടുക്കുക (ഔചിത്യം):",correct:"ഔചിത്യം",wrong:["ഔചിത്യം്","ഔചിതം","ഔസിത്യം"]},
+  {q:"ശരിയായ അക്ഷരവിന്യാസം തിരഞ്ഞെടുക്കുക (സാന്നിധ്യം):",correct:"സാന്നിധ്യം",wrong:["സാന്നിധ്യം്","സാനിധ്യം","സാന്നിദ്ധ്യം"]},
+  {q:"ശരിയായ അക്ഷരവിന്യാസം തിരഞ്ഞെടുക്കുക (അനുഷ്ഠാനം):",correct:"അനുഷ്ഠാനം",wrong:["അനുഷ്ടാനം","അനുഷ്ഠനം","അനുഷ്ഠാണം"]},
+  {q:"വാക്യത്തിലെ കർമം ഏത്? 'കവി കാവ്യം രചിച്ചു.'",correct:"കാവ്യം",wrong:["കവി","രചിച്ചു","കാവ്യ"]},
+  {q:"വാക്യത്തിലെ ക്രിയ ഏത്? 'നദി കടലിലേക്ക് ഒഴുകുന്നു.'",correct:"ഒഴുകുന്നു",wrong:["നദി","കടലിലേക്ക്","നദിയുടെ"]},
+  {q:"'നാളെ വരും' — ഇവിടെ ക്രിയയുടെ കാലം?",correct:"ഭാവികാലം",wrong:["ഭൂതകാലം","വർത്തമാനകാലം","നിത്യവർത്തമാനം"]},
+  {q:"താഴെ കൊടുത്തിരിക്കുന്നതിൽ സമാസരൂപം ഏത്?",correct:"നക്ഷത്രക്കൂട്ടം",wrong:["വലിയ നക്ഷത്രം","നല്ല ആകാശം","ഉയരെ പറക്കുന്നു"]},
+  {q:"'ഇല്ലായിരുന്നു' സൂചിപ്പിക്കുന്നത്?",correct:"ഭൂതകാല നിഷേധം",wrong:["ഭാവി സമ്മതം","ആജ്ഞ","ആശ്ചര്യം"]},
+  {q:"താഴെ പറയുന്നതിൽ അവ്യയം ഏത്?",correct:"പെട്ടെന്ന്",wrong:["കുട്ടി","പുസ്തകങ്ങൾ","ഓടി"]},
+  {q:"ശരിയായ വാക്യം ഏത്?",correct:"മഴ പെയ്താൽ കളി നിർത്തണം.",wrong:["മഴ പെയ്തു ആകയാൽ കളി നിർത്തണമായി.","മഴയുടെ പെയ്തത് കളി.","മഴ പെയ്തു എങ്കിൽ കളിയുടെ നിർത്തൽ."]},
+  {q:"'കാൽ' എന്ന പദത്തിന്റെ പര്യായം?",correct:"പാദം",wrong:["ഹസ്തം","ശിരസ്സ്","സ്കന്ധം"]},
+  {q:"'തല' എന്ന പദത്തിന്റെ പര്യായം?",correct:"ശിരസ്സ്",wrong:["പാദം","ഹസ്തം","വക്ഷസ്സ്"]},
+  {q:"'മൂക്ക്' എന്ന പദത്തിന്റെ പര്യായം?",correct:"നാസിക",wrong:["നയനം","കർണം","വദനം"]},
+  {q:"താഴെ പറയുന്നതിൽ നാമം അല്ലാത്തത്?",correct:"ഓടുക",wrong:["വിദ്യാലയം","നദി","ആന"]},
+  {q:"'അറിവ് തേടുന്നവൻ' എന്നർഥമുള്ള പദം?",correct:"വിദ്യാർഥി",wrong:["വ്യാപാരി","യാത്രികൻ","ഭടൻ"]},
+  {q:"'പഠിപ്പിക്കുക' എന്ന ധാതുവിൽ നിന്നുള്ള നാമം?",correct:"അധ്യാപനം",wrong:["പാഠശാല മാത്രം","ശിഷ്യൻ","പുസ്തകം"]},
+  {q:"'ഉം' ചേർത്ത് ബന്ധിപ്പിക്കുന്നത് ഏത് തരം വാക്യം?",correct:"സമുച്ചയം",wrong:["നിഷേധം","ആജ്ഞ","പ്രശ്നം"]},
+  {q:"'കൈരവം' എന്ന പദം സൂചിപ്പിക്കുന്നത്?",correct:"താമര",wrong:["മുല്ല","റോസ്","കണികൊന്ന"]},
+  {q:"'ഭാനു' എന്ന പദം സൂചിപ്പിക്കുന്നത്?",correct:"സൂര്യൻ",wrong:["ചന്ദ്രൻ","ചൊവ്വ","ബുധൻ"]},
+  {q:"'ശശി' എന്ന പദം സൂചിപ്പിക്കുന്നത്?",correct:"ചന്ദ്രൻ",wrong:["സൂര്യൻ","രാഹു","ശനി"]},
+  {q:"താഴെ പറയുന്നതിൽ ശുദ്ധമായ അക്ഷരവിന്യാസം?",correct:"പ്രതിഭാസം",wrong:["പ്രതിഭാസം്","പ്രതിബാസം","പ്രതിഭാശം"]},
+  {q:"'വിജയം + ഉത്സവം' യുടെ ശരിയായ സന്ധി?",correct:"വിജയോത്സവം",wrong:["വിജയഉത്സവം","വിജയുത്സവം","വിജയോത്സവൻ"]},
+  {q:"'ഹിതം ചെയ്യുന്നത്' എന്നർഥമുള്ള പദം?",correct:"ഹിതകരം",wrong:["ഹിതവിരുദ്ധം","അനിഷ്ടം","ദോഷകരം"]},
+  {q:"വാക്യം ശരിയാക്കുക: അവർ സ്കൂളിൽ പോകുന്നു ആയിരുന്നു.",correct:"അവർ സ്കൂളിൽ പോകുകയായിരുന്നു.",wrong:["അവർ സ്കൂളിൽ പോകുന്നു ഉണ്ടായിരുന്നു.","അവർ സ്കൂൾ പോയിക്കൊണ്ടിരിക്കുന്നു ആയി.","അവർ സ്കൂളിലേക്കായിരുന്നു പോകുന്നു."]},
+  {q:"'ഒരു വാക്കിന് പകരം മറ്റൊരു വാക്ക്' എന്ന അർഥത്തിൽ?",correct:"പര്യായം",wrong:["വിപരീതം","സന്ധി","സമാസം"]},
+  {q:"താഴെ പറയുന്നതിൽ ക്രിയാപദം ഏത്?",correct:"എഴുതി",wrong:["നല്ല","വലിയ","സുന്ദരമായ"]},
+  {q:"'രണ്ട് + അക്ഷരം' ചേർന്ന പദം?",correct:"ദ്വയക്ഷരം",wrong:["രണ്ടക്ഷരം","ദ്വിഅക്ഷരം","ദ്വയക്ഷരി"]},
+  {q:"'നല്ലവനല്ല' എന്ന പ്രയോഗം സൂചിപ്പിക്കുന്നത്?",correct:"നിഷേധം",wrong:["സമ്മതം","ആശ്ചര്യം","ആജ്ഞ"]},
+  {q:"ശരിയായ വിരാമചിഹ്നമുള്ളത് ഏത്?",correct:"എവിടെ പോകുന്നു?",wrong:["എവിടെ പോകുന്നു.","എവിടെ പോകുന്നു!","എവിടെ പോകുന്നു,"]},
+  {q:"'കാവ്യം' എന്ന പദത്തിന്റെ പര്യായം?",correct:"കവിത",wrong:["നാടകം","നോവൽ","ലേഖനം"]},
+  {q:"താഴെ പറയുന്നതിൽ സാഹിത്യരൂപം അല്ലാത്തത്?",correct:"ത്രികോണം",wrong:["കഥ","കവിത","നാടകം"]}
 ];
 
 const SERIES_BANK = [
-  {q:"2, 4, 6, 8, ?",correct:"10",wrong:["9","12","11"]},
-  {q:"5, 10, 15, 20, ?",correct:"25",wrong:["30","22","24"]},
-  {q:"1, 3, 5, 7, ?",correct:"9",wrong:["8","10","11"]},
-  {q:"10, 20, 30, 40, ?",correct:"50",wrong:["45","60","55"]},
-  {q:"A, B, C, D, ?",correct:"E",wrong:["F","G","H"]},
-  {q:"ഞായർ, തിങ്കൾ, ചൊവ്വ, ?",correct:"ബുധൻ",wrong:["വ്യാഴം","വെള്ളി","ശനി"]},
-  {q:"ജനുവരി, ഫെബ്രുവരി, മാർച്ച്, ?",correct:"ഏപ്രിൽ",wrong:["മേയ്","ജൂൺ","ഡിസംബർ"]},
-  {q:"1, 4, 9, 16, ?",correct:"25",wrong:["20","36","18"]},
-  {q:"പൂച്ച, നായ, പശു, ?",correct:"ആട്",wrong:["പക്ഷി","മത്സ്യം","പാമ്പ്"]},
-  {q:"ചുവപ്പ്, നീല, പച്ച, ?",correct:"മഞ്ഞ",wrong:["കറുപ്പ്","വെള്ള","ധൂമ്രം"]},
-  {q:"3, 6, 9, 12, ?",correct:"15",wrong:["14","16","18"]},
-  {q:"11, 22, 33, 44, ?",correct:"55",wrong:["54","56","66"]},
-  {q:"100, 90, 80, 70, ?",correct:"60",wrong:["50","65","55"]},
-  {q:"2, 4, 8, 16, ?",correct:"32",wrong:["24","20","30"]},
-  {q:"Z, Y, X, W, ?",correct:"V",wrong:["U","T","A"]},
-  {q:"P, Q, R, S, ?",correct:"T",wrong:["U","O","V"]},
-  {q:"ചിങ്ങം, കന്നി, തുലാം, ?",correct:"വൃശ്ചികം",wrong:["ധനു","മകരം","കുംഭം"]},
-  {q:"7, 14, 21, 28, ?",correct:"35",wrong:["32","34","42"]},
-  {q:"1, 8, 27, 64, ?",correct:"125",wrong:["100","81","121"]},
-  {q:"21, 18, 15, 12, ?",correct:"9",wrong:["8","10","6"]},
-  {q:"B, D, F, H, ?",correct:"J",wrong:["I","K","G"]},
-  {q:"5, 25, 125, ?",correct:"625",wrong:["250","500","225"]},
-  {q:"2, 3, 5, 7, 11, ?",correct:"13",wrong:["12","14","15"]},
-  {q:"10, 13, 16, 19, ?",correct:"22",wrong:["21","23","20"]},
-  {q:"36, 30, 24, 18, ?",correct:"12",wrong:["10","14","16"]},
-  {q:"8, 16, 24, 32, ?",correct:"40",wrong:["36","42","48"]},
-  {q:"U, T, S, R, ?",correct:"Q",wrong:["P","O","V"]},
-  {q:"വിത്ത്, മുള, ചെടി, ?",correct:"മരം",wrong:["ഇല","പൂവ്","കായ"]},
-  {q:"രാവിലെ, ഉച്ച, വൈകുന്നേരം, ?",correct:"രാത്രി",wrong:["പ്രഭാതം","മദ്ധ്യാഹ്നം","സന്ധ്യ"]}
+  {q:"4, 9, 16, 25, 36, ?",correct:"49",wrong:["48","45","64"]},
+  {q:"7, 21, 63, 189, ?",correct:"567",wrong:["378","441","504"]},
+  {q:"2, 7, 17, 37, ?",correct:"77",wrong:["67","74","87"]},
+  {q:"8, 15, 29, 57, ?",correct:"113",wrong:["99","111","115"]},
+  {q:"6, 10, 18, 34, ?",correct:"66",wrong:["50","52","64"]},
+  {q:"27, 64, 125, 216, ?",correct:"343",wrong:["256","324","289"]},
+  {q:"19, 17, 13, 11, 7, ?",correct:"5",wrong:["3","9","1"]},
+  {q:"1, 4, 10, 22, 46, ?",correct:"94",wrong:["86","90","92"]},
+  {q:"3, 5, 9, 17, 33, ?",correct:"65",wrong:["49","61","63"]},
+  {q:"14, 28, 31, 62, 65, ?",correct:"130",wrong:["128","124","132"]},
+  {q:"9, 27, 81, 243, ?",correct:"729",wrong:["486","648","810"]},
+  {q:"121, 144, 169, 196, ?",correct:"225",wrong:["216","256","200"]},
+  {q:"5, 8, 14, 23, 35, ?",correct:"50",wrong:["47","48","49"]},
+  {q:"80, 40, 44, 22, 26, ?",correct:"13",wrong:["12","14","16"]},
+  {q:"2, 12, 30, 56, ?",correct:"90",wrong:["80","84","86"]},
+  {q:"1, 8, 9, 64, 25, ?",correct:"216",wrong:["125","36","343"]},
+  {q:"16, 25, 36, 49, ?",correct:"64",wrong:["63","72","81"]},
+  {q:"3, 9, 10, 30, 31, ?",correct:"93",wrong:["62","90","94"]},
+  {q:"100, 97, 91, 82, ?",correct:"70",wrong:["72","73","68"]},
+  {q:"4, 6, 12, 14, 28, 30, ?",correct:"60",wrong:["32","56","58"]},
+  {q:"C, F, I, L, ?",correct:"O",wrong:["N","P","M"]},
+  {q:"D, H, L, P, ?",correct:"T",wrong:["S","U","R"]},
+  {q:"Y, W, T, P, ?",correct:"K",wrong:["L","J","M"]},
+  {q:"B2, D4, F6, H8, ?",correct:"J10",wrong:["I9","J9","K12"]},
+  {q:"Q4, S6, U8, W10, ?",correct:"Y12",wrong:["X11","Y11","Z14"]},
+  {q:"BA, DC, FE, HG, ?",correct:"JI",wrong:["IH","KJ","IJ"]},
+  {q:"BDF, CEG, DFH, EGI, ?",correct:"FHJ",wrong:["FGI","GHJ","FIJ"]},
+  {q:"3B, 6D, 12F, 24H, ?",correct:"48J",wrong:["36I","48I","46J"]},
+  {q:"6, 11, 21, 41, 81, ?",correct:"161",wrong:["151","160","162"]},
+  {q:"15, 18, 24, 36, ?",correct:"60",wrong:["48","54","58"]},
+  {q:"20, 32, 50, 74, ?",correct:"104",wrong:["96","98","108"]},
+  {q:"9, 18, 20, 40, 43, ?",correct:"86",wrong:["80","83","88"]},
+  {q:"1, 3, 7, 15, 31, ?",correct:"63",wrong:["47","61","62"]},
+  {q:"64, 32, 34, 17, 19, ?",correct:"9.5",wrong:["8","10","9"]},
+  {q:"11, 13, 17, 25, 41, ?",correct:"73",wrong:["57","65","69"]}
 ];
 
 const ENGLISH_BANK = [
-  {q:"A soft wind is also called a _____",correct:"breeze",wrong:["storm","gale","cyclone"]},
-  {q:"She likes the _____ of jasmine flowers. (from C A R G E F R N A)",correct:"fragrance",wrong:["colour","beauty","smell"]},
-  {q:"Opposite of 'narrow'?",correct:"wide",wrong:["thin","long","small"]},
-  {q:"The boy went to the fair _____ his parents.",correct:"with",wrong:["to","of","through"]},
-  {q:"Plural of 'child'?",correct:"children",wrong:["childs","childes","childrens"]},
-  {q:"Opposite of 'happy'?",correct:"sad",wrong:["angry","tired","hungry"]},
-  {q:"A place where we study?",correct:"school",wrong:["home","park","shop"]},
-  {q:"The sun rises in the _____",correct:"east",wrong:["west","north","south"]},
-  {q:"How many days in a week?",correct:"seven",wrong:["five","six","eight"]},
-  {q:"We drink _____",correct:"water",wrong:["fire","air","stone"]},
-  {q:"Opposite of 'hot'?",correct:"cold",wrong:["warm","cool","dry"]},
-  {q:"Plural of 'box'?",correct:"boxes",wrong:["boxs","boxies","boxen"]},
-  {q:"A cow gives us _____",correct:"milk",wrong:["honey","wool","eggs"]},
-  {q:"The opposite of 'day' is _____",correct:"night",wrong:["noon","morning","evening"]},
-  {q:"She _____ a student.",correct:"is",wrong:["am","are","be"]},
-  {q:"I _____ going to school.",correct:"am",wrong:["is","are","be"]},
-  {q:"They _____ playing football.",correct:"are",wrong:["is","am","be"]},
-  {q:"A baby dog is called a _____",correct:"puppy",wrong:["kitten","cub","calf"]},
-  {q:"Opposite of 'up'?",correct:"down",wrong:["left","right","over"]},
-  {q:"We write with a _____",correct:"pen",wrong:["plate","ball","shoe"]},
-  {q:"Plural of 'leaf'?",correct:"leaves",wrong:["leafs","leafes","leavs"]},
-  {q:"Opposite of 'fast'?",correct:"slow",wrong:["quick","rapid","soon"]},
-  {q:"We see with our _____",correct:"eyes",wrong:["ears","nose","hands"]},
-  {q:"We hear with our _____",correct:"ears",wrong:["eyes","tongue","feet"]},
-  {q:"Opposite of 'open'?",correct:"closed",wrong:["wide","start","free"]},
-  {q:"Plural of 'man'?",correct:"men",wrong:["mans","mens","manes"]},
-  {q:"Plural of 'woman'?",correct:"women",wrong:["womans","womens","womanes"]},
-  {q:"The past tense of 'go' is _____",correct:"went",wrong:["goed","gone","going"]},
-  {q:"The past tense of 'eat' is _____",correct:"ate",wrong:["eated","eaten","eating"]},
-  {q:"Choose the correct article: ___ apple",correct:"an",wrong:["a","the","no"]},
-  {q:"Choose the correct article: ___ book",correct:"a",wrong:["an","the","no"]},
-  {q:"A doctor works in a _____",correct:"hospital",wrong:["school","market","station"]},
-  {q:"We cook food in the _____",correct:"kitchen",wrong:["bedroom","bathroom","garage"]},
-  {q:"Opposite of 'full'?",correct:"empty",wrong:["half","more","less"]},
-  {q:"Plural of 'tooth'?",correct:"teeth",wrong:["tooths","teethes","tooth"]},
-  {q:"Plural of 'foot'?",correct:"feet",wrong:["foots","feets","foot"]},
-  {q:"The sun sets in the _____",correct:"west",wrong:["east","north","south"]},
-  {q:"How many months are there in a year?",correct:"twelve",wrong:["ten","eleven","thirteen"]},
-  {q:"A person who teaches is a _____",correct:"teacher",wrong:["doctor","driver","farmer"]},
-  {q:"Opposite of 'clean'?",correct:"dirty",wrong:["neat","fresh","new"]},
-  {q:"Water freezes into _____",correct:"ice",wrong:["steam","smoke","dust"]},
-  {q:"A bee gives us _____",correct:"honey",wrong:["milk","wool","silk"]},
-  {q:"Plural of 'baby'?",correct:"babies",wrong:["babys","babyes","babys"]},
-  {q:"The past tense of 'see' is _____",correct:"saw",wrong:["seen","seed","seeing"]},
-  {q:"The first month of the year is _____",correct:"January",wrong:["March","December","June"]},
-  {q:"The last month of the year is _____",correct:"December",wrong:["January","November","October"]},
-  {q:"How many letters are in the English alphabet?",correct:"26",wrong:["24","25","30"]},
-  {q:"Choose the correct spelling of 'friend':",correct:"friend",wrong:["freind","frend","frind"]},
-  {q:"Choose the correct spelling of 'because':",correct:"because",wrong:["becoz","becouse","becase"]}
+  {q:"Choose the correct article: She bought _____ umbrella.",correct:"an",wrong:["a","the","no article"]},
+  {q:"Choose the correct article: _____ Himalayas are in the north.",correct:"The",wrong:["A","An","No article"]},
+  {q:"Fill in: The cat jumped _____ the wall.",correct:"over",wrong:["on","at","into"]},
+  {q:"Fill in: He has been ill _____ Monday.",correct:"since",wrong:["for","from","at"]},
+  {q:"Fill in: They stayed here _____ a week.",correct:"for",wrong:["since","from","by"]},
+  {q:"Choose the correct verb: Mathematics _____ my favourite subject.",correct:"is",wrong:["are","were","have"]},
+  {q:"Choose the correct verb: Either of the answers _____ correct.",correct:"is",wrong:["are","were","have"]},
+  {q:"Choose the correct verb: The cattle _____ grazing.",correct:"are",wrong:["is","was","has"]},
+  {q:"Past participle of 'sing'?",correct:"sung",wrong:["sang","singed","singing"]},
+  {q:"Past tense of 'catch'?",correct:"caught",wrong:["catched","caughted","catching"]},
+  {q:"Past tense of 'choose'?",correct:"chose",wrong:["chosen","choosed","choose"]},
+  {q:"Opposite of 'generous'?",correct:"selfish",wrong:["kind","noble","polite"]},
+  {q:"Opposite of 'permanent'?",correct:"temporary",wrong:["lasting","fixed","stable"]},
+  {q:"Opposite of 'arrive'?",correct:"depart",wrong:["reach","enter","come"]},
+  {q:"Synonym of 'tiny'?",correct:"minute",wrong:["huge","wide","tall"]},
+  {q:"Synonym of 'wealthy'?",correct:"affluent",wrong:["poor","weak","lazy"]},
+  {q:"A person who treats teeth is a _____",correct:"dentist",wrong:["nurse","chemist","surgeon"]},
+  {q:"A person who makes furniture is a _____",correct:"carpenter",wrong:["blacksmith","mason","plumber"]},
+  {q:"A place where fishes are kept is an _____",correct:"aquarium",wrong:["aviary","apiary","stable"]},
+  {q:"A place where horses are kept is a _____",correct:"stable",wrong:["kennel","shed","den"]},
+  {q:"Collective noun: a _____ of bees.",correct:"swarm",wrong:["flock","herd","pride"]},
+  {q:"Collective noun: a _____ of wolves.",correct:"pack",wrong:["pride","swarm","bunch"]},
+  {q:"Pick the word with correct spelling:",correct:"accommodation",wrong:["accomodation","acommodation","accommadation"]},
+  {q:"Pick the word with correct spelling:",correct:"separate",wrong:["seperate","seprate","separrate"]},
+  {q:"Pick the word with correct spelling:",correct:"beginning",wrong:["begining","beggining","beginnning"]},
+  {q:"Pick the word with correct spelling:",correct:"privilege",wrong:["priviledge","privilage","prevelege"]},
+  {q:"Identify the adjective: The ancient fort stood on the hill.",correct:"ancient",wrong:["fort","stood","hill"]},
+  {q:"Identify the adverb: She spoke softly to the child.",correct:"softly",wrong:["spoke","child","She"]},
+  {q:"Identify the grammatically correct sentence:",correct:"He does not know the answer.",wrong:["He do not know the answer.","He does not knows the answer.","He not know the answer."]},
+  {q:"Identify the grammatically correct sentence:",correct:"One of the boys is missing.",wrong:["One of the boys are missing.","One of boy is missing.","One of the boy are missing."]},
+  {q:"Degree: Comparative of 'far'?",correct:"farther",wrong:["more far","farthest","farer"]},
+  {q:"Degree: Superlative of 'little'?",correct:"least",wrong:["less","littlest","lesser"]},
+  {q:"Change to passive: Someone stole the purse.",correct:"The purse was stolen.",wrong:["The purse is steal.","The purse stole someone.","The purse has steal."]},
+  {q:"Reported speech: She said, 'I will help you.'",correct:"She said that she would help me.",wrong:["She said that I will help you.","She said that she will help you.","She told that she help me."]},
+  {q:"Choose the correct preposition: The road runs _____ the forest.",correct:"through",wrong:["among","between","at"]},
+  {q:"Choose the correct preposition: He is good _____ mathematics.",correct:"at",wrong:["in","on","with"]},
+  {q:"One who loves his country is a _____",correct:"patriot",wrong:["traitor","pioneer","refugee"]},
+  {q:"Words that have the same spelling but different meanings:",correct:"homographs",wrong:["synonyms","antonyms","proverbs"]},
+  {q:"'Right' can mean correct or the opposite of left. Such words are:",correct:"homonyms",wrong:["synonyms","antonyms","idioms"]},
+  {q:"Choose the correct question tag: They have finished, _____?",correct:"haven't they",wrong:["have they","didn't they","aren't they"]},
+  {q:"Fill in: If you heat ice, it _____ .",correct:"melts",wrong:["melted","melting","would melted"]},
+  {q:"Which word is a preposition?",correct:"beneath",wrong:["slowly","happy","and"]},
+  {q:"The feminine of 'duke' is _____",correct:"duchess",wrong:["queen","lady","princess"]},
+  {q:"A person who cannot see is _____",correct:"blind",wrong:["deaf","dumb","lame"]},
+  {q:"Choose the correct conjunction: I waited _____ the train arrived.",correct:"until",wrong:["unless","during","across"]}
 ];
 
 const GK_BANK = [
-  {q:"കേരളത്തിന്റെ ഔദ്യോഗിക പുഷ്പം?",correct:"കണികൊന്ന",wrong:["താമര","മുല്ല","റോസ്"]},
-  {q:"ഇന്ത്യയുടെ ദേശീയ ഗാനം രചിച്ചത്?",correct:"രബീന്ദ്രനാഥ് ടാഗോർ",wrong:["ബങ്കിംചന്ദ്ര ചാറ്റർജി","ഗാന്ധിജി","നെഹ്‌റു"]},
-  {q:"ഭൂമിയിൽ നിന്ന് ഏറ്റവും അടുത്തുള്ള നക്ഷത്രം?",correct:"സൂര്യൻ",wrong:["ചന്ദ്രൻ","ചൊവ്വ","ശനി"]},
-  {q:"കേരളത്തിലെ പ്രശസ്ത തീർത്ഥാടന കേന്ദ്രം?",correct:"ശബരിമല",wrong:["തിരുപതി","വാരണാസി","രാമേശ്വരം"]},
-  {q:"ഇന്ത്യയുടെ ദേശീയ കായിക ഇനം?",correct:"ഹോക്കി",wrong:["ക്രിക്കറ്റ്","ഫുട്ബോൾ","കബഡി"]},
-  {q:"ഒരു വർഷത്തിൽ എത്ര മാസം?",correct:"12",wrong:["10","11","13"]},
-  {q:"കേരളത്തിന്റെ ഔദ്യോഗിക മൃഗം?",correct:"ആന",wrong:["കടുവ","സിംഹം","കരടി"]},
-  {q:"ഇന്ത്യയുടെ തലസ്ഥാനം?",correct:"ന്യൂഡൽഹി",wrong:["മുംബൈ","കൊൽക്കത്ത","ചെന്നൈ"]},
-  {q:"ഗാന്ധിജി ജനിച്ച നാട്?",correct:"ഗുജറാത്ത്",wrong:["കേരളം","മഹാരാഷ്ട്ര","ബിഹാർ"]},
-  {q:"കേരളത്തിലെ ഏറ്റവും ഉയരമുള്ള കൊടുമുടി?",correct:"ആനമുടി",wrong:["ആഗസ്ത്യമല","ചെമ്പ്ര","പൊൻമുടി"]},
-  {q:"ഇന്ത്യയുടെ ദേശീയ പതാകയിലെ നിറങ്ങളുടെ എണ്ണം?",correct:"3",wrong:["2","4","5"]},
-  {q:"അശോകചക്രം ഏത് നിറമാണ്?",correct:"നീല",wrong:["ചുവപ്പ്","പച്ച","കറുപ്പ്"]},
-  {q:"ഇന്ത്യ സ്വതന്ത്രമായ വർഷം?",correct:"1947",wrong:["1950","1942","1930"]},
-  {q:"റിപ്പബ്ലിക് ദിനം?",correct:"ജനുവരി 26",wrong:["ഓഗസ്റ്റ് 15","ഒക്ടോബർ 2","നവംബർ 14"]},
-  {q:"സ്വാതന്ത്ര്യ ദിനം?",correct:"ഓഗസ്റ്റ് 15",wrong:["ജനുവരി 26","ഒക്ടോബർ 2","മേയ് 1"]},
-  {q:"ശിശുദിനം?",correct:"നവംബർ 14",wrong:["ഒക്ടോബർ 2","ജനുവരി 26","സെപ്റ്റംബർ 5"]},
-  {q:"അധ്യാപക ദിനം?",correct:"സെപ്റ്റംബർ 5",wrong:["നവംബർ 14","ഒക്ടോബർ 2","ജൂൺ 5"]},
-  {q:"ലോകത്തിലെ ഏറ്റവും വലിയ സമുദ്രം?",correct:"പസഫിക്",wrong:["അറ്റ്ലാന്റിക്","ഇന്ത്യൻ","ആർട്ടിക്"]},
-  {q:"ഇന്ത്യയുടെ ദക്ഷിണ അറ്റം?",correct:"കന്യാകുമാരി",wrong:["കാശ്മീർ","ഗുജറാത്ത്","സിക്കിം"]},
-  {q:"കേരളത്തിലെ ജില്ലകളുടെ എണ്ണം?",correct:"14",wrong:["12","13","15"]},
-  {q:"ഇന്ത്യയുടെ ആദ്യ രാഷ്ട്രപതി?",correct:"രാജേന്ദ്ര പ്രസാദ്",wrong:["നെഹ്‌റു","അബ്ദുൾ കലാം","സി. രാജഗോപാലാചാരി"]},
-  {q:"ദേശീയ ഗാനം?",correct:"ജന ഗണ മന",wrong:["വന്ദേ മാതരം","ജയ ഹേ","സാരേ ജഹാം"]},
-  {q:"ദേശീയ ഗീതം?",correct:"വന്ദേ മാതരം",wrong:["ജന ഗണ മന","സാരേ ജഹാം സേ അച്ഛ","ജയ ഹേ"]},
-  {q:"സൂര്യൻ ഒരു _____ ആണ്.",correct:"നക്ഷത്രം",wrong:["ഗ്രഹം","ഉപഗ്രഹം","ധൂമകേതു"]},
-  {q:"ഭൂമി ഒരു _____ ആണ്.",correct:"ഗ്രഹം",wrong:["നക്ഷത്രം","ഉപഗ്രഹം","ക്ഷുദ്രഗ്രഹം"]},
-  {q:"ഒരു ദിവസത്തിൽ എത്ര മണിക്കൂർ?",correct:"24",wrong:["12","10","36"]},
-  {q:"ഒരു മണിക്കൂറിൽ എത്ര മിനിറ്റ്?",correct:"60",wrong:["30","100","24"]},
-  {q:"ശ്വസിക്കാൻ ആവശ്യമായ വാതകം?",correct:"ഓക്സിജൻ",wrong:["കാർബൺ ഡൈഓക്സൈഡ്","നൈട്രജൻ","ഹീലിയം"]},
-  {q:"രക്തം പമ്പ് ചെയ്യുന്ന അവയവം?",correct:"ഹൃദയം",wrong:["കരൾ","വൃക്ക","ശ്വാസകോശം"]},
-  {q:"താജ്‌മഹൽ സ്ഥിതി ചെയ്യുന്നത്?",correct:"ആഗ്ര",wrong:["ഡൽഹി","ജയ്പൂർ","മുംബൈ"]},
-  {q:"താജ്‌മഹൽ നിർമ്മിച്ചത്?",correct:"ഷാജഹാൻ",wrong:["അക്ബർ","ഹുമയൂൺ","ഔറംഗസേബ്"]},
-  {q:"ഇന്ത്യയുടെ ദേശീയ വൃക്ഷം?",correct:"ആൽമരം",wrong:["തെങ്ങ്","മാവ്","നീലഗിരി"]},
-  {q:"ഇന്ത്യയുടെ ദേശീയ ഫലം?",correct:"മാങ്ങ",wrong:["വാഴപ്പഴം","ആപ്പിൾ","ഓറഞ്ച്"]},
-  {q:"ലോക പരിസ്ഥിതി ദിനം?",correct:"ജൂൺ 5",wrong:["ഏപ്രിൽ 22","മാർച്ച് 21","സെപ്റ്റംബർ 16"]},
-  {q:"ഗ്രഹങ്ങളുടെ എണ്ണം (സൗരയൂഥം)?",correct:"8",wrong:["9","7","10"]},
-  {q:"സൂര്യനോട് ഏറ്റവും അടുത്ത ഗ്രഹം?",correct:"ബുധൻ",wrong:["ശുക്രൻ","ഭൂമി","ചൊവ്വ"]},
-  {q:"ചുവന്ന ഗ്രഹം എന്നറിയപ്പെടുന്നത്?",correct:"ചൊവ്വ",wrong:["വ്യാഴം","ശനി","ശുക്രൻ"]},
-  {q:"ഏറ്റവും വലിയ ഗ്രഹം?",correct:"വ്യാഴം",wrong:["ശനി","ഭൂമി","നെപ്റ്റ്യൂൺ"]},
-  {q:"കേരളത്തിന്റെ ഔദ്യോഗിക വൃക്ഷം?",correct:"തെങ്ങ്",wrong:["മാവ്","പ്ലാവ്","ആൽ"]},
-  {q:"കേരളത്തിലെ ഏറ്റവും വടക്കുള്ള ജില്ല?",correct:"കാസർഗോഡ്",wrong:["കണ്ണൂർ","വയനാട്","കോഴിക്കോട്"]},
-  {q:"കേരളത്തിലെ ഏറ്റവും തെക്കുള്ള ജില്ല?",correct:"തിരുവനന്തപുരം",wrong:["കൊല്ലം","പത്തനംതിട്ട","ആലപ്പുഴ"]},
-  {q:"ലോകത്തിലെ ഏറ്റവും ഉയരമുള്ള പർവതം?",correct:"എവറസ്റ്റ്",wrong:["കെ2","കാഞ്ചൻജംഗ","ആനമുടി"]},
-  {q:"ഇന്ത്യൻ ബഹിരാകാശ ഏജൻസി?",correct:"ISRO",wrong:["NASA","DRDO","BARC"]},
-  {q:"നീലക്കുറിഞ്ഞി വിടരുന്ന ഇടവേള?",correct:"12 വർഷം",wrong:["1 വർഷം","5 വർഷം","25 വർഷം"]},
-  {q:"കേരളത്തെ കിഴക്ക് നിന്ന് പരിരക്ഷിക്കുന്ന മലനിര?",correct:"പശ്ചിമഘട്ടം",wrong:["കിഴക്കൻഘട്ടം","ഹിമാലയം","അരവല്ലി"]},
-  {q:"ഇന്ത്യയിലെ ഏറ്റവും വലിയ മരുഭൂമി?",correct:"താർ",wrong:["സഹാറ","ഗോബി","അറ്റകാമ"]},
-  {q:"മുന്നാർ ഏത് ജില്ലയിലാണ്?",correct:"ഇടുക്കി",wrong:["വയനാട്","പാലക്കാട്","തൃശ്ശൂർ"]},
-  {q:"ഇന്ത്യയുടെ ദേശീയ നാണയം?",correct:"രൂപ",wrong:["ഡോളർ","യൂറോ","പൗണ്ട്"]},
-  {q:"ഭൂമിയിലെ ഏറ്റവും വലിയ മഹാദേശം?",correct:"ഏഷ്യ",wrong:["ആഫ്രിക്ക","യൂറോപ്പ്","ആസ്ട്രേലിയ"]}
+  {q:"കേരളത്തിന്റെ ഔദ്യോഗിക ഫലം?",correct:"ചക്ക",wrong:["മാങ്ങ","വാഴപ്പഴം","പേരക്ക"]},
+  {q:"ഇന്ത്യയുടെ ദേശീയ ഗീതം രചിച്ചത്?",correct:"ബങ്കിംചന്ദ്ര ചാറ്റർജി",wrong:["ടാഗോർ","ഭാരതിയാർ","ഇക്ബാൽ"]},
+  {q:"കേരളത്തിലെ ഏറ്റവും വലിയ ജില്ല (വിസ്തീർണ്ണം)?",correct:"പാലക്കാട്",wrong:["ഇടുക്കി","മലപ്പുറം","തിരുവനന്തപുരം"]},
+  {q:"കേരളത്തിലെ ഏറ്റവും കൂടുതൽ ജനസംഖ്യയുള്ള ജില്ല?",correct:"മലപ്പുറം",wrong:["എറണാകുളം","തിരുവനന്തപുരം","കോഴിക്കോട്"]},
+  {q:"ഇന്ത്യയുടെ ആദ്യ ഉപരാഷ്ട്രപതി?",correct:"എസ്. രാധാകൃഷ്ണൻ",wrong:["രാജേന്ദ്ര പ്രസാദ്","സക്കീർ ഹുസൈൻ","വി.വി. ഗിരി"]},
+  {q:"ഇന്ത്യൻ പാർലമെന്റിലെ ഉപരിസഭ?",correct:"രാജ്യസഭ",wrong:["ലോകസഭ","വിധാൻസഭ","നിയമസഭ"]},
+  {q:"കേരള നിയമസഭ ആസ്ഥാനം?",correct:"തിരുവനന്തപുരം",wrong:["കൊച്ചി","കോഴിക്കോട്","തൃശ്ശൂർ"]},
+  {q:"ചാർമിനാർ സ്ഥിതി ചെയ്യുന്നത്?",correct:"ഹൈദരാബാദ്",wrong:["ആഗ്ര","ജയ്പൂർ","ലഖ്‌നൗ"]},
+  {q:"എറണാകുളം ജില്ലയിലെ പ്രധാന ദ്വീപ് ഗ്രൂപ്പ്?",correct:"കൊച്ചി ദ്വീപുകൾ",wrong:["ലക്ഷദ്വീപ്","ആന്തമാൻ","മിനിക്കോയ്"]},
+  {q:"ഭരതപ്പുഴ ഒഴുകുന്നത് ഏത് കടലിലേക്ക്?",correct:"അറബിക്കടൽ",wrong:["ബംഗാൾ ഉൾക്കടൽ","ഇന്ത്യൻ മഹാസമുദ്രം നേരിട്ട്","പസഫിക്"]},
+  {q:"ഇടുക്കി വന്യജീവി സങ്കേതവുമായി ബന്ധപ്പെട്ട നദി?",correct:"പെരിയാർ",wrong:["പമ്പ","ചാലിയാർ","കരമന"]},
+  {q:"പമ്പാനദി ഏത് ക്ഷേത്രവുമായി ബന്ധപ്പെട്ടിരിക്കുന്നു?",correct:"ശബരിമല",wrong:["ഗുരുവായൂർ","ഹരിപ്പാട്","അട്ടുകൽ"]},
+  {q:"കേരളത്തിലെ ഏറ്റവും ചെറിയ ജില്ല?",correct:"ആലപ്പുഴ",wrong:["വയനാട്","കാസർഗോഡ്","കൊല്ലം"]},
+  {q:"വയനാട് ഏത് മലനിരയിലാണ്?",correct:"പശ്ചിമഘട്ടം",wrong:["കിഴക്കൻഘട്ടം","ഹിമാലയം","സത്പുര"]},
+  {q:"കേരളത്തിലെ തലസ്ഥാന നഗരത്തിലൂടെ ഒഴുകുന്ന നദി?",correct:"കരമനയാർ",wrong:["പെരിയാർ","ഭാരതപ്പുഴ","ചാലിയാർ"]},
+  {q:"ദക്ഷിണേന്ത്യയിലെ പ്രധാന പീഠഭൂമി?",correct:"ഡെക്കാൻ",wrong:["മാളവ","ചോട്ടാനാഗ്പുർ","താർ"]},
+  {q:"കാവേരി നദി ഉത്ഭവിക്കുന്നത്?",correct:"കർണാടക",wrong:["കേരളം","തമിഴ്‌നാട്","ആന്ധ്ര"]},
+  {q:"ശ്വേതവിപ്ലവം ബന്ധപ്പെട്ടിരിക്കുന്നത്?",correct:"പാൽോൽപ്പാദനം",wrong:["ഗോതമ്പ്","മത്സ്യം","പരുത്തി"]},
+  {q:"ഇന്ത്യയുടെ ആദ്യ ചന്ദ്രമിഷൻ?",correct:"ചന്ദ്രയാൻ-1",wrong:["മംഗൽയാൻ","ആദിത്യ","ഗഗൻയാൻ"]},
+  {q:"മംഗൽയാൻ ഏത് ഗ്രഹത്തിലേക്ക്?",correct:"ചൊവ്വ",wrong:["ശുക്രൻ","വ്യാഴം","ശനി"]},
+  {q:"ഹരിത സസ്യങ്ങൾ ഉണ്ടാക്കുന്ന ആഹാരം?",correct:"ഗ്ലൂക്കോസ്",wrong:["പ്രോട്ടീൻ മാത്രം","ലവണം","ജലം മാത്രം"]},
+  {q:"മനുഷ്യ ശരീരത്തിലെ ഏറ്റവും വലിയ അവയവം?",correct:"ത്വക്ക്",wrong:["കരൾ","ഹൃദയം","ശ്വാസകോശം"]},
+  {q:"ജലചക്രത്തിൽ മേഘമായി മാറുന്ന പ്രക്രിയ?",correct:"സാന്ദ്രീകരണം",wrong:["ബാഷ്പീകരണം","ഊർധ്വപതനം","അരിച്ചിറക്കൽ"]},
+  {q:"ഭൂമിയുടെ ഉള്ളിലെ ഏറ്റവും ഉള്ള പാളി?",correct:"അകക്കാമ്പ്",wrong:["പുറംതോട്","മാന്റിൽ","അന്തരീക്ഷം"]},
+  {q:"കാറ്റിന്റെ വേഗം അളക്കുന്ന സ്കെയിൽ?",correct:"ബ്യൂഫോർട്ട്",wrong:["റിക്ടർ","സെൽഷ്യസ്","കെൽവിൻ"]},
+  {q:"ഓസോൺ കേന്ദ്രീകരിച്ചിരിക്കുന്ന പാളി?",correct:"സ്ട്രാറ്റോസ്ഫിയർ",wrong:["ട്രോപ്പോസ്ഫിയർ","മെസോസ്ഫിയർ","തെർമോസ്ഫിയർ"]},
+  {q:"ഇന്ത്യയിലെ ഏറ്റവും വലിയ ഉപ്പുവെള്ള തടാകങ്ങളിലൊന്ന്?",correct:"ചിൽക്ക",wrong:["വേമ്പനാട്","ലോക്തക്","പുളിക്കൽ"]},
+  {q:"കേരളത്തിലെ ഔദ്യോഗിക ശലഭം?",correct:"ബുദ്ധമയൂരി",wrong:["മൊണാർക്ക്","സ്വാലോടെയിൽ","പാപ്പിലിയോ"]},
+  {q:"കേരളത്തിലെ ഔദ്യോഗിക വൃക്ഷം?",correct:"തെങ്ങ്",wrong:["മാവ്","പ്ലാവ്","തേക്ക്"]},
+  {q:"'ഓഗസ്റ്റ് 15' ആചരിക്കുന്നത്?",correct:"സ്വാതന്ത്ര്യദിനം",wrong:["റിപ്പബ്ലിക് ദിനം","ഗാന്ധി ജയന്തി","കർഷകദിനം"]},
+  {q:"ഹൈക്കോടതി കേരളത്തിൽ സ്ഥിതി ചെയ്യുന്നത്?",correct:"എറണാകുളം",wrong:["തിരുവനന്തപുരം","കോഴിക്കോട്","തൃശ്ശൂർ"]},
+  {q:"ഇന്ത്യയുടെ ദേശീയ ജലജീവി?",correct:"ഗംഗാഡോൾഫിൻ",wrong:["കരിമീൻ","തിമിംഗലം","മുതല"]},
+  {q:"ലോക ജലദിനം?",correct:"മാർച്ച് 22",wrong:["ജൂൺ 5","ഏപ്രിൽ 22","മാർച്ച് 21"]},
+  {q:"റെയിൽവേ ബജറ്റ് ഇപ്പോൾ അവതരിപ്പിക്കുന്നത്?",correct:"പൊതു ബജറ്റിനൊപ്പം",wrong:["പ്രത്യേകം ഫെബ്രുവരി 1","മേയ് 1","ഓഗസ്റ്റ് 15"]},
+  {q:"ഇന്ത്യയിലെ ആദ്യ വനിതാ രാഷ്ട്രപതി?",correct:"പ്രതിഭാ പാട്ടീൽ",wrong:["ഇന്ദിരാഗാന്ധി","സരോജിനി നായിഡു","ദ്രൗപദി മുർമു"]},
+  {q:"കേരള ഹൈക്കോടതിയുടെ ആദ്യ ചീഫ് ജസ്റ്റിസ് സംസ്ഥാന രൂപീകരണ ശേഷം ബന്ധപ്പെട്ട നഗരം?",correct:"എറണാകുളം",wrong:["തലശ്ശേരി","ആലപ്പുഴ","കൊല്ലം"]},
+  {q:"വാക്സിനേഷൻ തുടങ്ങിയ ശാസ്ത്രജ്ഞൻ?",correct:"എഡ്വേർഡ് ജെന്നർ",wrong:["ഫ്ലെമിങ്","പാസ്ചർ","കോച്ച്"]},
+  {q:"ക്ഷയരോഗാണു കണ്ടെത്തിയത്?",correct:"റോബർട്ട് കോച്ച്",wrong:["ജെന്നർ","ഹാർവി","ലാൻഡ്‌സ്റ്റൈനർ"]},
+  {q:"കേരളത്തിലെ പ്രധാന കായൽ?",correct:"വേമ്പനാട്",wrong:["ചിൽക്ക","പുളിക്കൽ","സാംഭാർ"]},
+  {q:"സൈലന്റ് വാലി ദേശീയോദ്യാനം ഏത് സംസ്ഥാനം?",correct:"കേരളം",wrong:["തമിഴ്‌നാട്","കർണാടക","ഗോവ"]},
+  {q:"ഇന്ത്യയുടെ ദേശീയ നദീതട ജലമൃഗ സംരക്ഷണവുമായി ബന്ധപ്പെട്ട നദി?",correct:"ഗംഗ",wrong:["നർമദ","മഹാനദി","താപി"]},
+  {q:"സ്വാതി തിരുനാൾ പ്രശസ്തനായത് പ്രധാനമായും?",correct:"സംഗീതം",wrong:["ക്രിക്കറ്റ്","ചിത്രകല മാത്രം","വ്യോമയാനം"]},
+  {q:"കേരളത്തിലെ ആദ്യ സാക്ഷരതാ നഗരമായി അറിയപ്പെട്ടത്?",correct:"കൊട്ടാരക്കര",wrong:["ഇടുക്കി","വയനാട്","ഇടക്കി"]},
+  {q:"ഇന്ത്യയുടെ ദേശീയ പക്ഷി?",correct:"മയിൽ",wrong:["കടൽക്കാക്ക","കഴുകൻ","കുയിൽ"]},
+  {q:"ഭൂമിയോട് ഏറ്റവും അടുത്ത ഗ്രഹം അല്ല, സൂര്യനോട് രണ്ടാമത് അടുത്തത്?",correct:"ശുക്രൻ",wrong:["ബുധൻ","ഭൂമി","ചൊവ്വ"]},
+  {q:"കേരളത്തിലെ പ്രധാന മലയോര ജില്ലകളിലൊന്ന്?",correct:"ഇടുക്കി",wrong:["ആലപ്പുഴ","കൊച്ചി നഗരം","കാസർഗോഡ് തീരം"]}
 ];
 
 /* ============================================================
@@ -639,11 +639,11 @@ function genDirection(rng){
 function genCubePaint(rng){
   // Fixed 3x3x3 knowledge questions
   const qs=[
-    {q:"3 സെ.മീ വശമുള്ള ഒരു ക്യൂബ് പെയിന്റ് ചെയ്ത് 1 സെ.മീ വശമുള്ള ചെറിയ ക്യൂബുകളാക്കി. 3 മുഖം പെയിന്റ് ഉള്ള ക്യൂബുകളുടെ എണ്ണം?",correct:"8",wrong:["6","3","1"]},
-    {q:"3 സെ.മീ വശമുള്ള ഒരു ക്യൂബ് പെയിന്റ് ചെയ്ത് 1 സെ.മീ വശമുള്ള ചെറിയ ക്യൂബുകളാക്കി. 1 മുഖം മാത്രം പെയിന്റ് ഉള്ള ക്യൂബുകളുടെ എണ്ണം?",correct:"6",wrong:["4","3","1"]},
-    {q:"3 സെ.മീ വശമുള്ള ഒരു ക്യൂബ് പെയിന്റ് ചെയ്ത് 1 സെ.മീ വശമുള്ള ചെറിയ ക്യൂബുകളാക്കി. പെയിന്റ് ഇല്ലാത്ത ക്യൂബുകളുടെ എണ്ണം?",correct:"1",wrong:["4","3","2"]},
-    {q:"3 സെ.മീ വശമുള്ള ഒരു ക്യൂബ് പെയിന്റ് ചെയ്ത് 1 സെ.മീ വശമുള്ള ചെറിയ ക്യൂബുകളാക്കി. ആകെ ചെറിയ ക്യൂബുകളുടെ എണ്ണം?",correct:"27",wrong:["9","12","18"]},
-    {q:"3 സെ.മീ വശമുള്ള ഒരു ക്യൂബ് പെയിന്റ് ചെയ്ത് 1 സെ.മീ വശമുള്ള ചെറിയ ക്യൂബുകളാക്കി. 2 മുഖം പെയിന്റ് ഉള്ള ക്യൂബുകളുടെ എണ്ണം?",correct:"12",wrong:["8","6","10"]}
+    {q:"4 സെ.മീ വശമുള്ള ഒരു ക്യൂബ് പെയിന്റ് ചെയ്ത് 1 സെ.മീ വശമുള്ള ചെറിയ ക്യൂബുകളാക്കി. 3 മുഖം പെയിന്റ് ഉള്ളവയുടെ എണ്ണം?",correct:"8",wrong:["6","4","1"]},
+    {q:"4 സെ.മീ വശമുള്ള ഒരു ക്യൂബ് പെയിന്റ് ചെയ്ത് 1 സെ.മീ വശമുള്ള ചെറിയ ക്യൂബുകളാക്കി. 1 മുഖം മാത്രം പെയിന്റ് ഉള്ളവയുടെ എണ്ണം?",correct:"24",wrong:["16","8","6"]},
+    {q:"4 സെ.മീ വശമുള്ള ഒരു ക്യൂബ് പെയിന്റ് ചെയ്ത് 1 സെ.മീ വശമുള്ള ചെറിയ ക്യൂബുകളാക്കി. പെയിന്റ് ഇല്ലാത്തവയുടെ എണ്ണം?",correct:"8",wrong:["1","4","16"]},
+    {q:"4 സെ.മീ വശമുള്ള ഒരു ക്യൂബ് പെയിന്റ് ചെയ്ത് 1 സെ.മീ വശമുള്ള ചെറിയ ക്യൂബുകളാക്കി. ആകെ ചെറിയ ക്യൂബുകൾ?",correct:"64",wrong:["16","27","48"]},
+    {q:"4 സെ.മീ വശമുള്ള ഒരു ക്യൂബ് പെയിന്റ് ചെയ്ത് 1 സെ.മീ വശമുള്ള ചെറിയ ക്യൂബുകളാക്കി. 2 മുഖം പെയിന്റ് ഉള്ളവയുടെ എണ്ണം?",correct:"24",wrong:["12","16","8"]}
   ];
   return fromBank(rng,choice(rng,qs));
 }
@@ -668,19 +668,19 @@ function genWorkDays(rng){
 
 function genOddOneWord(rng){
   const groups=[
-    {odd:"കോഫി", same:["ചായ","പാൽ","ജ്യൂസ്"]},
-    {odd:"പൂവ്", same:["വൃക്ഷം","കുറ്റിച്ചെടി","ഔഷധസസ്യം"]},
-    {odd:"വെള്ള", same:["ചുവപ്പ്","നീല","പച്ച"]},
-    {odd:"കൊച്ചി", same:["ചെന്നൈ","മുംബൈ","കൊൽക്കത്ത"]},
-    {odd:"രാധാകൃഷ്ണൻ", same:["നെഹ്‌റു","ഇന്ദിര","മോദി"]},
-    {odd:"സിംഹം", same:["പശു","ആട്","മാൻ"]},
-    {odd:"വിമാനം", same:["കാർ","ബസ്","ട്രെയിൻ"]},
-    {odd:"തിമിംഗലം", same:["സ്രാവ്","മത്തി","അയല"]},
-    {odd:"ചെന്നൈ", same:["കോഴിക്കോട്","കൊല്ലം","കണ്ണൂർ"]},
-    {odd:"ത്രികോണം", same:["ചതുരം","സമചതുരം","ചതുർഭുജം"]},
-    {odd:"ഗായകൻ", same:["ഡോക്ടർ","അധ്യാപകൻ","കർഷകൻ"]},
-    {odd:"പെൻസിൽ", same:["ആപ്പിൾ","മാങ്ങ","വാഴപ്പഴം"]},
-    {odd:"ഹിമാലയം", same:["പെരിയാർ","ഗംഗ","യമുന"]}
+    {odd:"സ്വർണം", same:["ഇരുമ്പ്","ചെമ്പ്","അലുമിനിയം"]},
+    {odd:"തവള", same:["പാമ്പ്","ഓന്ത്","അരണ"]},
+    {odd:"ഉപ്പ്", same:["മധുരം","പുളി","കയ്പ്പ്"]},
+    {odd:"പാലക്കാട്", same:["ചെന്നൈ","ബെംഗളൂരു","ഹൈദരാബാദ്"]},
+    {odd:"അംബേദ്കർ", same:["നെഹ്‌റു","പട്ടേൽ","രാജേന്ദ്ര പ്രസാദ്"]},
+    {odd:"കഴുകൻ", same:["പ്രാവ്","കുയിൽ","മൈന"]},
+    {odd:"കപ്പൽ", same:["ബസ്","കാർ","സ്കൂട്ടർ"]},
+    {odd:"പ്ലാറ്റിപ്പസ്", same:["പൂച്ച","നായ","മുയൽ"]},
+    {odd:"മുംബൈ", same:["കോട്ടയം","ആലപ്പുഴ","പത്തനംതിട്ട"]},
+    {odd:"വൃത്തം", same:["സമചതുരം","ദീർഘചതുരം","സമാന്തരചതുർഭുജം"]},
+    {odd:"ചിത്രകാരൻ", same:["ഡോക്ടർ","എഞ്ചിനീയർ","വക്കീൽ"]},
+    {odd:"ഇറക്കുമതി", same:["യവം","ഗോതമ്പ്","നെല്ല്"]},
+    {odd:"വിന്ധ്യ", same:["നർമദ","താപി","മഹാനദി"]}
   ];
   const g=choice(rng,groups);
   const opts=shuffle(rng,[g.odd,...g.same]);
@@ -689,13 +689,13 @@ function genOddOneWord(rng){
 
 function genAlwaysHas(rng){
   const items=[
-    {q:"ഒരു ആശുപത്രിക്ക് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"കിടക്ക",wrong:["മുറി","ഡോക്ടർ","നഴ്സ്"]},
-    {q:"ഒരു സ്കൂളിന് എല്ലായ്പ്പോഴും വേണ്ടത്?",correct:"അധ്യാപകർ",wrong:["കെട്ടിടം","ലൈബ്രറി","പ്രിൻസിപ്പൽ"]},
-    {q:"ഒരു പുസ്തകത്തിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"പേജുകൾ",wrong:["ചിത്രങ്ങൾ","കഥ","അധ്യായങ്ങൾ"]},
-    {q:"ഒരു മലയ്ക്ക് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"ഉയരം",wrong:["വെള്ളം","മൃഗങ്ങൾ","സസ്യങ്ങൾ"]},
-    {q:"ഒരു ഫാക്ടറിക്ക് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"തൊഴിലാളികൾ",wrong:["മെഷീൻ","വൈദ്യുതി","സുരക്ഷ"]},
-    {q:"ഒരു നദിക്ക് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"ഒഴുക്ക്",wrong:["പാലം","മത്സ്യബന്ധനം","ബോട്ട്"]},
-    {q:"ഒരു വൃത്തത്തിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"കേന്ദ്രം",wrong:["കോൺ","വശം","വികർണം"]},
+    {q:"ഒരു ഗ്രന്ഥാലയത്തിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"പുസ്തകം",wrong:["കമ്പ്യൂട്ടർ","ഓഡിറ്റോറിയം","കന്റീൻ"]},
+    {q:"ഒരു തീവണ്ടിക്ക് എല്ലായ്പ്പോഴും വേണ്ടത്?",correct:"പാളം",wrong:["എയർകണ്ടീഷൻ","ഭക്ഷണം","ടിവി"]},
+    {q:"ഒരു കത്തിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"സന്ദേശം",wrong:["സ്റ്റാമ്പ്","ഫോട്ടോ","കവർ"]},
+    {q:"ഒരു ദ്വീപിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"വെള്ളം ചുറ്റും",wrong:["മല","വനം","നഗരം"]},
+    {q:"ഒരു തുറമുഖത്തിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"കപ്പലുകൾ വരാനുള്ള സൗകര്യം",wrong:["വിമാനം","മലകൾ","മരുഭൂമി"]},
+    {q:"ഒരു ക്ലോക്കിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"സമയം കാണിക്കൽ",wrong:["അലാറം","ബാറ്ററി","സ്വർണ്ണ നിറം"]},
+    {q:"ഒരു ചതുരത്തിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"നാല് വശം",wrong:["തുല്യ വശം","വൃത്തം","മൂന്ന് കോൺ"]},
     {q:"ഒരു വർഷത്തിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"മാസങ്ങൾ",wrong:["ഉത്സവം","മഴ","പരീക്ഷ"]},
     {q:"ഒരു ത്രികോണത്തിന് എല്ലായ്പ്പോഴും ഉണ്ടാകുന്നത്?",correct:"മൂന്ന് വശം",wrong:["നാല് കോൺ","വൃത്തം","സമചതുരം"]}
   ];
@@ -704,17 +704,17 @@ function genAlwaysHas(rng){
 
 function genWordAnalogy(rng){
   const pairs=[
-    {a:"മാസിക",b:"എഡിറ്റർ",c:"നാടകം",d:"സംവിധായകൻ"},
-    {a:"കലണ്ടർ",b:"തീയതി",c:"നിഘണ്ടു",d:"വാക്കുകൾ"},
-    {a:"പുക",b:"മലിനീകരണം",c:"യുദ്ധം",d:"നാശം"},
-    {a:"അടുക്കള",b:"കിടപ്പുമുറി",c:"സസ്യശാസ്ത്രം",d:"ജന്തുശാസ്ത്രം"},
-    {a:"മഗ്നീഷ്യം",b:"അലുമിനിയം",c:"ബ്രാസ്",d:"കോപ്പർ"},
-    {a:"പുസ്തകം",b:"വായന",c:"ഗാനം",d:"ശ്രവണം"},
-    {a:"തേനീച്ച",b:"തേൻ",c:"പശു",d:"പാൽ"},
-    {a:"കണ്ണ്",b:"കാഴ്ച",c:"ചെവി",d:"ശ്രവണം"},
-    {a:"വിത്ത്",b:"ചെടി",c:"മുട്ട",d:"കുഞ്ഞ്"},
-    {a:"ഡോക്ടർ",b:"ആശുപത്രി",c:"അധ്യാപകൻ",d:"വിദ്യാലയം"},
-    {a:"പക്ഷി",b:"കൂട്",c:"സിംഹം",d:"ഗുഹ"}
+    {a:"പത്രം",b:"ലേഖകൻ",c:"ചലച്ചിത്രം",d:"സംവിധായകൻ"},
+    {a:"ഘടികാരം",b:"സമയം",c:"താപമാപിനി",d:"താപനില"},
+    {a:"വരൾച്ച",b:"ക്ഷാമം",c:"പ്രളയം",d:"നാശനഷ്ടം"},
+    {a:"സ്കൂൾ",b:"ക്ലാസ്",c:"ആശുപത്രി",d:"വാർഡ്"},
+    {a:"ഇരുമ്പ്",b:"ഉരുക്ക്",c:"പരുത്തി",d:"തുണി"},
+    {a:"ചിത്രം",b:"കാഴ്ച",c:"ഗാനം",d:"ശ്രവണം"},
+    {a:"പട്ടാമ്പൂച്ചി",b:"പട്ട്",c:"ചെമ്മരിയാട്",d:"കമ്പിളി"},
+    {a:"നാവ്",b:"രുചി",c:"മൂക്ക്",d:"മണം"},
+    {a:"മുകുളം",b:"പൂവ്",c:"മുട്ട",d:"കുഞ്ഞ്"},
+    {a:"വൈദ്യൻ",b:"ക്ലിനിക്",c:"വക്കീൽ",d:"കോടതി"},
+    {a:"മത്സ്യം",b:"വല",c:"കർഷകൻ",d:"മണ്ണ്"}
   ];
   const p=choice(rng,pairs);
   const wrongs=shuffle(rng,["നടൻ","മാനേജർ","വിജയം","ശാസ്ത്രം","ഇരുമ്പ്"]).slice(0,3);
@@ -737,11 +737,11 @@ function genClockAngle(rng){
 }
 
 function genFractionSum(rng){
-  const N=randInt(rng,100,400);
-  const correct = Math.round(N*(1/2 + 1/4 + 1/8 - 7/8));
-  const distract=()=>correct+choice(rng,[-2,-1,1,2]);
+  const N=choice(rng,[48,60,72,84,96,120]);
+  const correct = N/2 + N/3 - N/4;
+  const distract=()=>correct+choice(rng,[-N/4,-N/6,-6,-4,4,6,N/12]);
   const {opts,ans}=uniq4(rng,correct,distract);
-  return {q:`${N}(1/2) + ${N}(1/4) + ${N}(1/8) − ${N}(7/8) യുടെ വില?`,opts,ans};
+  return {q:`${N} ന്റെ 1/2 ഭാഗവും 1/3 ഭാഗവും കൂട്ടി 1/4 ഭാഗം കുറച്ചാൽ കിട്ടുന്ന സംഖ്യ?`,opts,ans};
 }
 
 function genLCMRemainder(rng){
@@ -940,24 +940,28 @@ function genEquationSolve(rng){
    BUILD A FULL LINK (40 Q)
    ============================================================ */
 function genArithmeticSeries(rng){
-  const start=randInt(rng,1,40);
-  const step=randInt(rng,2,12);
-  const seq=[];
-  for(let i=0;i<5;i++) seq.push(start+i*step);
-  const correct=start+5*step;
-  const distract=()=>correct+choice(rng,[-step*2,-step,step,step*2,3]);
+  const start=randInt(rng,3,18);
+  const a=randInt(rng,2,5);
+  const b=randInt(rng,1,4);
+  const seq=[start];
+  let x=start;
+  for(let i=1;i<=5;i++){ x = x + a + (i-1)*b; seq.push(x); }
+  const correct=seq[5];
+  const shown=seq.slice(0,5);
+  const distract=()=>correct+choice(rng,[-a-b,-b,b,a,2*b,-2*a]);
   const {opts,ans}=uniq4(rng,correct,distract);
-  return {q:`ശ്രേണി പൂരിപ്പിക്കുക: ${seq.join(', ')}, ?`,opts,ans};
+  return {q:`ശ്രേണിയിലെ അടുത്ത സംഖ്യ: ${shown.join(', ')}, ?`,opts,ans};
 }
 function genGeometricSeries(rng){
   const start=choice(rng,[2,3,4,5]);
   const mul=choice(rng,[2,3]);
   const seq=[start];
   for(let i=0;i<4;i++) seq.push(seq[seq.length-1]*mul);
-  const correct=seq[seq.length-1]*mul;
-  const distract=()=>correct+choice(rng,[-start*mul,-mul,mul,start]);
-  const {opts,ans}=uniq4(rng,correct,distract);
-  return {q:`ശ്രേണി: ${seq.join(', ')}, ?`,opts,ans};
+  const correct=seq[4]*mul;
+  const shown=seq.slice();
+  const distract=()=>correct*choice(rng,[2,3]) + choice(rng,[-2,-1,1,2]);
+  const {opts,ans}=uniq4(rng,correct,()=>correct+choice(rng,[-start*mul,-mul,mul,start]));
+  return {q:`ശ്രേണി: ${shown.join(', ')}, ?`,opts,ans};
 }
 function genSkipLetter(rng){
   const start=randInt(rng,0,18);
@@ -965,75 +969,107 @@ function genSkipLetter(rng){
   const seq=[];
   for(let i=0;i<5;i++) seq.push(String.fromCharCode(65+start+i*(skip+1)));
   const correct=String.fromCharCode(65+start+5*(skip+1));
-  if(correct.charCodeAt(0)>90) return genSkipLetter(rng);
   const distract=()=>String.fromCharCode(65+randInt(rng,0,25));
   const {opts,ans}=uniq4(rng,correct,distract);
   return {q:`അടുത്ത അക്ഷരം: ${seq.join(', ')}, ?`,opts,ans};
 }
 function genSimpleAdd(rng){
-  const op=choice(rng,['+','−','×']);
+  const kind=randInt(rng,0,3);
   let correct,q;
-  if(op==='+'){ const a=randInt(rng,12,80), b=randInt(rng,8,60); correct=a+b; q=`${a} + ${b} = ?`; }
-  else if(op==='−'){ const a=randInt(rng,20,90), b=randInt(rng,5,a-1); correct=a-b; q=`${a} − ${b} = ?`; }
-  else { const x=randInt(rng,4,12), y=randInt(rng,4,12); correct=x*y; q=`${x} × ${y} = ?`; }
-  const distract=()=>correct+choice(rng,[-10,-6,-3,-1,1,3,6,10]);
-  const {opts,ans}=uniq4(rng,correct,distract);
+  if(kind===0){
+    const a=randInt(rng,8,18), b=randInt(rng,3,9), c=randInt(rng,2,8);
+    correct=a+b*c; q=`${a} + ${b} × ${c} = ?`;
+  } else if(kind===1){
+    const a=randInt(rng,20,60), b=randInt(rng,2,8), c=randInt(rng,3,9);
+    correct=(a-b)*c; q=`(${a} − ${b}) × ${c} = ?`;
+  } else if(kind===2){
+    const a=randInt(rng,4,12), b=randInt(rng,3,9), c=randInt(rng,2,6);
+    correct=a*b-c; q=`${a} × ${b} − ${c} = ?`;
+  } else {
+    const a=randInt(rng,24,96), b=choice(rng,[2,3,4,6,8]), c=randInt(rng,5,15);
+    correct=(a/b)+c; q=`${a} ÷ ${b} + ${c} = ?`;
+  }
+  const distract=()=>Math.round(correct)+choice(rng,[-12,-8,-6,-4,-3,3,4,6,8,12]);
+  const {opts,ans}=uniq4(rng,Math.round(correct),distract);
   return {q,opts,ans};
 }
+
 function genDayOffset(rng){
   const days=['ഞായർ','തിങ്കൾ','ചൊവ്വ','ബുധൻ','വ്യാഴം','വെള്ളി','ശനി'];
-  const i=randInt(rng,0,6); const k=randInt(rng,2,10);
-  const correct=days[(i+k)%7];
+  const i=randInt(rng,0,6);
+  const date=randInt(rng,3,18);
+  const later=date+randInt(rng,8,16);
+  const correct=days[(i+(later-date))%7];
   const distract=()=>choice(rng,days.filter(d=>d!==correct));
   const {opts,ans}=uniq4(rng,correct,distract);
-  return {q:`${days[i]} മുതൽ ${k} ദിവസം കഴിഞ്ഞാൽ ഏത് ദിവസം?`,opts,ans};
+  return {q:`ഒരു മാസത്തിലെ ${date}-ാം തീയതി ${days[i]} ആണ്. അതേ മാസത്തിലെ ${later}-ാം തീയതി ഏത് ദിവസം?`,opts,ans};
 }
+
 function genPlaceValue(rng){
-  const n=randInt(rng,125,986);
+  const a=randInt(rng,1,9), b=randInt(rng,0,9), c=randInt(rng,0,9), d=randInt(rng,1,9);
+  const n=1000*a+100*b+10*c+d;
   const kind=randInt(rng,0,2);
   let correct,q;
-  if(kind===0){ correct=n%10; q=`${n} എന്ന സംഖ്യയിലെ ഒന്നിന്റെ സ്ഥാനത്തെ അക്കം?`; }
-  else if(kind===1){ correct=Math.floor(n/10)%10; q=`${n} എന്ന സംഖ്യയിലെ പത്തിന്റെ സ്ഥാനത്തെ അക്കം?`; }
-  else { correct=Math.floor(n/100)%10; q=`${n} എന്ന സംഖ്യയിലെ നൂറിന്റെ സ്ഥാനത്തെ അക്കം?`; }
-  const distract=()=>randInt(rng,0,9);
+  if(kind===0){
+    correct=a*1000 + d;
+    q=`${n} എന്ന സംഖ്യയിലെ ആയിരത്തിന്റെ സ്ഥാനവിലയും ഒന്നിന്റെ സ്ഥാനവിലയും കൂട്ടിയാൽ?`;
+  } else if(kind===1){
+    const digits=[a,b,c,d].sort((x,y)=>y-x);
+    correct=1000*digits[0]+100*digits[1]+10*digits[2]+digits[3];
+    q=`${n} എന്ന സംഖ്യയിലെ അക്കങ്ങൾ ഉപയോഗിച്ച് ഉണ്ടാക്കാവുന്ന ഏറ്റവും വലിയ നാലക്ക സംഖ്യ?`;
+  } else {
+    correct = (a+c) - b;
+    q=`${n} എന്ന സംഖ്യയിൽ ആയിരത്തിന്റെ അക്കവും പത്തിന്റെ അക്കവും കൂട്ടി നൂറിന്റെ അക്കം കുറച്ചാൽ?`;
+  }
+  const distract=()=>correct+choice(rng,[-9,-5,-3,-1,1,3,5,9,10]);
   const {opts,ans}=uniq4(rng,correct,distract);
   return {q,opts,ans};
 }
+
 function genPerimeter(rng){
-  if(rng()<0.5){
-    const s=randInt(rng,4,20);
-    const correct=4*s;
-    const distract=()=>correct+choice(rng,[-4,-2,s,2*s]);
+  const kind=randInt(rng,0,2);
+  if(kind===0){
+    const s=randInt(rng,6,16);
+    const correct=s*s;
+    const distract=()=>correct+choice(rng,[-s,-2*s,2*s,4*s,-4]);
     const {opts,ans}=uniq4(rng,correct,distract);
-    return {q:`${s} സെ.മീ വശമുള്ള സമചതുരത്തിന്റെ ചുറ്റളവ്?`,opts,ans};
+    return {q:`ഒരു സമചതുരത്തിന്റെ ചുറ്റളവ് ${4*s} സെ.മീ ആണ്. അതിന്റെ വിസ്തീർണ്ണം (ച.സെ.മീ)?`,opts,ans};
   }
-  const l=randInt(rng,8,20), b=randInt(rng,3,l-2);
-  const correct=2*(l+b);
-  const distract=()=>correct+choice(rng,[-4,-2,2,4,l]);
+  if(kind===1){
+    const l=randInt(rng,10,24), b=randInt(rng,4,l-3);
+    const correct=l*b;
+    const distract=()=>correct+choice(rng,[-l,-b,2*(l+b),l+b]);
+    const {opts,ans}=uniq4(rng,correct,distract);
+    return {q:`നീളം ${l} സെ.മീ, വീതി ${b} സെ.മീ ഉള്ള ദീർഘചതുരത്തിന്റെ വിസ്തീർണ്ണം?`,opts,ans};
+  }
+  const s=randInt(rng,5,14); const l=s+randInt(rng,3,8);
+  const correct=2*(l+s);
+  const distract=()=>correct+choice(rng,[-2,-4,s,l,2*s]);
   const {opts,ans}=uniq4(rng,correct,distract);
-  return {q:`നീളം ${l} സെ.മീ, വീതി ${b} സെ.മീ ഉള്ള ചതുരത്തിന്റെ ചുറ്റളവ്?`,opts,ans};
+  return {q:`ഒരു ദീർഘചതുരത്തിന്റെ നീളം വീതിയേക്കാൾ ${l-s} സെ.മീ കൂടുതലാണ്. വീതി ${s} സെ.മീ ആണെങ്കിൽ ചുറ്റളവ്?`,opts,ans};
 }
+
 function genFamilyRelation(rng){
   const items=[
-    {q:"രാജുവിന്റെ അമ്മയുടെ ഭർത്താവ് രാജുവിന്റെ?",correct:"അച്ഛൻ",wrong:["അമ്മാവൻ","മുത്തച്ഛൻ","സഹോദരൻ"]},
-    {q:"മീനയുടെ അച്ഛന്റെ അമ്മ മീനയുടെ?",correct:"മുത്തശ്ശി",wrong:["അമ്മായി","സഹോദരി","മരുമകൾ"]},
-    {q:"അനുവിന്റെ അച്ഛന്റെ സഹോദരൻ അനുവിന്റെ?",correct:"അമ്മാവൻ",wrong:["മുത്തച്ഛൻ","ചേട്ടൻ","മരുമകൻ"]},
-    {q:"വിനുവിന്റെ അമ്മയുടെ സഹോദരി വിനുവിന്റെ?",correct:"അമ്മായി",wrong:["മുത്തശ്ശി","സഹോദരി","മരുമകൾ"]},
-    {q:"കാവ്യയുടെ സഹോദരന്റെ മകൾ കാവ്യയുടെ?",correct:"മരുമകൾ",wrong:["മകൾ","സഹോദരി","അമ്മായി"]},
-    {q:"അജയുടെ അച്ഛന്റെ അച്ഛൻ അജയുടെ?",correct:"മുത്തച്ഛൻ",wrong:["അമ്മാവൻ","ചേട്ടൻ","മരുമകൻ"]}
+    {q:"നീതുവിന്റെ അച്ഛന്റെ സഹോദരി നീതുവിന്റെ?",correct:"അമ്മായി",wrong:["മുത്തശ്ശി","സഹോദരി","മരുമകൾ"]},
+    {q:"അർജുനിന്റെ അമ്മയുടെ അമ്മ അർജുനിന്റെ?",correct:"മുത്തശ്ശി",wrong:["അമ്മായി","സഹോദരി","മരുമകൾ"]},
+    {q:"ദീപയുടെ അമ്മയുടെ സഹോദരൻ ദീപയുടെ?",correct:"അമ്മാവൻ",wrong:["മുത്തച്ഛൻ","ചേട്ടൻ","മരുമകൻ"]},
+    {q:"ഹരിയുടെ സഹോദരിയുടെ മകൻ ഹരിയുടെ?",correct:"മരുമകൻ",wrong:["മകൻ","സഹോദരൻ","അമ്മാവൻ"]},
+    {q:"ലക്ഷ്മിയുടെ ഭർത്താവിന്റെ അച്ഛൻ ലക്ഷ്മിയുടെ?",correct:"അമ്മായിയപ്പൻ",wrong:["അമ്മാവൻ","മകൻ","സഹോദരൻ"]},
+    {q:"സഞ്ജയുടെ അമ്മയുടെ ഭർത്താവ് സഞ്ജയുടെ?",correct:"അച്ഛൻ",wrong:["അമ്മാവൻ","മുത്തച്ഛൻ","ചേട്ടൻ"]}
   ];
   return fromBank(rng,choice(rng,items));
 }
 
 function buildLink(seed){
-  const rng=mulberry32(seed*2025*86420 + 13579 + USED_STEM.size*17);
+  const rng=mulberry32(seed*917531411 + 2026*41 + USED_QFP.size*29 + 770077);
   let qs=[];
 
-  // Banks are consumed globally — the same item never appears in another link.
-  const verbal = takeBank(rng, VERBAL_BANK, USED_BANK_IDX.verbal, 8);
-  const series = takeBank(rng, SERIES_BANK, USED_BANK_IDX.series, 2);
-  const english = takeBank(rng, ENGLISH_BANK, USED_BANK_IDX.eng, 6);
-  const gk = takeBank(rng, GK_BANK, USED_BANK_IDX.gk, 6);
+  // Banks are consumed globally so the same item never appears in another link.
+  const verbal = takeBank(rng, VERBAL_BANK, USED_BANK_IDX.verbal, 7);
+  const series = takeBank(rng, SERIES_BANK, USED_BANK_IDX.series, 4);
+  const english = takeBank(rng, ENGLISH_BANK, USED_BANK_IDX.eng, 5);
+  const gk = takeBank(rng, GK_BANK, USED_BANK_IDX.gk, 5);
 
   const procFns = [
     genLetterSeries, genNumberSeries, genAnalogyNumber, genCodingLetter,
@@ -1063,11 +1099,12 @@ function buildLink(seed){
   while(qs.length<Q_PER_LINK && guard<500){
     guard++;
     if(rng()<0.4){
-      const pair=choice(rng, leftoverBanks);
-      const extra=takeBank(rng, pair[0], pair[1], 1);
+      const [bank,used]=choice(rng, leftoverBanks);
+      const extra=takeBank(rng, bank, used, 1);
       if(extra.length){ qs.push(extra[0]); continue; }
     }
-    const extra=takeGen(rng, choice(rng, procFns), 1, 22);
+    const fn=choice(rng, procFns);
+    const extra=takeGen(rng, fn, 1, 22);
     if(extra.length) qs.push(extra[0]);
   }
   while(qs.length<Q_PER_LINK){
@@ -1236,19 +1273,20 @@ function drawHeaderPdf(doc,pageW,subtitle){
   doc.setTextColor(0,0,0);
 }
 
-/* Builds the exam PDF document (shared by Download and Print) so both produce
-   identical, correctly-shaped Malayalam output. Pass encrypt:false for the
-   print flow, since a password-protected PDF can't be auto-printed smoothly
-   from an embedded viewer. */
-async function buildExamPdfDoc(linkIdx, encrypt){
-  await mlLoadFontFace();
-  const { jsPDF } = window.jspdf;
-  let doc;
+async function downloadPDF(linkIdx){
+  if(window._pdfBusy) return;
+  if(!(window.jspdf && window.jspdf.jsPDF)){ alert('PDF library not loaded. ഇന്റർനെറ്റ് ബന്ധം പരിശോധിക്കുക.'); return; }
+  if(!builtSections[linkIdx]) ensureSectionShell(linkIdx);
+  window._pdfBusy = true;
   try{
-    doc = encrypt
-      ? new jsPDF({unit:'mm',format:'a4',encryption:{userPassword:PDF_PASSWORD,ownerPassword:PDF_PASSWORD,userPermissions:["print"]}})
-      : new jsPDF({unit:'mm',format:'a4'});
-  }catch(e){ doc=new jsPDF({unit:'mm',format:'a4'}); }
+  try{
+    await Promise.race([
+      mlLoadFontFace(),
+      new Promise(function(res){ setTimeout(res, 2500); })
+    ]);
+  }catch(e){}
+  const { jsPDF } = window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
   registerMalayalamFont(doc);
   const pageW=210,pageH=297;
   const qs=ALL_LINKS[linkIdx];
@@ -1308,61 +1346,27 @@ async function buildExamPdfDoc(linkIdx, encrypt){
     doc.setFont('Manjari','normal'); doc.text(`${letters[item.ans]}`,ax+10,ayy);
   });
 
-  return doc;
-}
-
-async function downloadPDF(linkIdx){
-  if(!(window.jspdf && window.jspdf.jsPDF)){ alert('PDF library not loaded.'); return; }
-  const doc = await buildExamPdfDoc(linkIdx, true);
-  const _pdfFilename = `LSS_PAPER1_2025_MODEL_EXAM_Link_${linkIdx+1}.pdf`;
+  const _pdfFilename = 'LSS_PAPER1_MODEL_EXAM_Link_'+(linkIdx+1)+'.pdf';
   try{
-    const blob = doc.output('blob');
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = _pdfFilename;
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
-  }catch(e){
-    try{ doc.save(_pdfFilename); }
-    catch(e2){
-      try{ window.open(doc.output('bloburl'), '_blank'); }
-      catch(e3){ alert('PDF ഡൗൺലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി ബ്രൗസറിൽ വീണ്ടും ശ്രമിക്കുക.'); }
+    doc.save(_pdfFilename);
+  }catch(e1){
+    try{
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = _pdfFilename;
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){ try{ document.body.removeChild(a); }catch(e){} URL.revokeObjectURL(url); }, 4000);
+    }catch(e2){
+      window.open(doc.output('bloburl'), '_blank');
     }
   }
-}
-
-/* Print now renders the SAME PDF used for download (not the on-screen quiz
-   form) so the printed sheet matches the downloaded PDF exactly. */
-async function printExam(linkIdx){
-  if(!(window.jspdf && window.jspdf.jsPDF)){ alert('PDF library not loaded.'); return; }
-  try{
-    const doc = await buildExamPdfDoc(linkIdx, false);
-    const blob = doc.output('blob');
-    const url = URL.createObjectURL(blob);
-    const iframe = document.createElement('iframe');
-    iframe.style.position='fixed';
-    iframe.style.right='0';
-    iframe.style.bottom='0';
-    iframe.style.width='0';
-    iframe.style.height='0';
-    iframe.style.border='0';
-    iframe.src = url;
-    document.body.appendChild(iframe);
-    iframe.onload = function(){
-      setTimeout(function(){
-        try{ iframe.contentWindow.focus(); iframe.contentWindow.print(); }
-        catch(e){ window.open(url,'_blank'); }
-      }, 300);
-    };
-    setTimeout(function(){
-      try{ document.body.removeChild(iframe); }catch(e){}
-      URL.revokeObjectURL(url);
-    }, 120000);
-  }catch(e){ alert('പ്രിന്റ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി വീണ്ടും ശ്രമിക്കുക.'); }
+  }catch(err){
+    alert('PDF ഡൗൺലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി വീണ്ടും ക്ലിക്ക് ചെയ്യുക.');
+  }finally{ window._pdfBusy = false; }
 }
 
 function showLink(i){
@@ -1376,9 +1380,32 @@ function showLink(i){
 }
 
 /* ---------------- INIT ---------------- */
-for(let i=0;i<LINK_COUNT;i++){ ALL_LINKS.push(buildLink(i+1)); }
+try{
+  for(let i=0;i<LINK_COUNT;i++){ ALL_LINKS.push(buildLink(i+1)); }
+}catch(e){
+  console.error(e);
+  while(ALL_LINKS.length<LINK_COUNT){
+    try{ ALL_LINKS.push(buildLink(ALL_LINKS.length+101)); }
+    catch(e2){ ALL_LINKS.push([]); }
+  }
+}
 buildNav();
 showLink(0);
+const _wmEl = document.getElementById('watermarkPrintText');
+if(_wmEl) _wmEl.textContent = WATERMARK_TEXT;
+
+function printExam(linkIdx){
+  if(!builtSections[linkIdx]) ensureSectionShell(linkIdx);
+  showLink(linkIdx);
+  downloadPDF(linkIdx);
+  document.querySelectorAll('.link-section').forEach(s=>s.classList.remove('printing'));
+  const sec = document.getElementById('section'+linkIdx);
+  if(sec) sec.classList.add('printing');
+  setTimeout(function(){ window.print(); }, 400);
+}
+window.onafterprint = function(){
+  document.querySelectorAll('.link-section').forEach(s=>s.classList.remove('printing'));
+};
 </script>
 </body>
 </html>
